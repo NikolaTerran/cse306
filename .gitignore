@@ -1,55 +1,64 @@
 # Compressed kernel
 *.tgz
 
-# Prerequisites
-*.d
-
-# Object files
+*~
+_*
 *.o
-*.ko
-*.obj
-*.elf
+*.d
+*.asm
+*.sym
+*.img
+.gdbinit
 
-# Linker output
-*.ilk
-*.map
-*.exp
+# # Prerequisites
+# *.d
 
-# Precompiled Headers
-*.gch
-*.pch
+# # Object files
+# *.o
+# *.ko
+# *.obj
+# *.elf
 
-# Libraries
-*.lib
-*.a
-*.la
-*.lo
+# # Linker output
+# *.ilk
+# *.map
+# *.exp
 
-# Shared objects (inc. Windows DLLs)
-*.dll
-*.so
-*.so.*
-*.dylib
+# # Precompiled Headers
+# *.gch
+# *.pch
 
-# Executables
-*.exe
-*.out
-*.app
-*.i*86
-*.x86_64
-*.hex
+# # Libraries
+# *.lib
+# *.a
+# *.la
+# *.lo
 
-# Debug files
-*.dSYM/
-*.su
-*.idb
-*.pdb
+# # Shared objects (inc. Windows DLLs)
+# *.dll
+# *.so
+# *.so.*
+# *.dylib
 
-# Kernel Module Compile Results
-*.mod*
-*.cmd
-.tmp_versions/
-modules.order
-Module.symvers
-Mkfile.old
-dkms.conf
+# # Executables
+# *.exe
+# *.out
+# *.app
+# *.i*86
+# *.x86_64
+# *.hex
+
+# # Debug files
+# *.dSYM/
+# *.su
+# *.idb
+# *.pdb
+
+# # Kernel Module Compile Results
+# *.mod*
+# *.cmd
+# .tmp_versions/
+# modules.order
+# Module.symvers
+# Mkfile.old
+# dkms.conf
