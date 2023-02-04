@@ -36,6 +36,11 @@ idtinit(void)
 void
 trap(struct trapframe *tf)
 {
+  //note: this create infinite loop of printout
+  // cprintf("%d\n",tf->trapno);
+
+  //set breakpoint in gdb with:
+  //break kernel/trap.c:41
   if(tf->trapno == T_SYSCALL){
     if(myproc()->killed)
       exit();
@@ -47,7 +52,8 @@ trap(struct trapframe *tf)
   }
 
   switch(tf->trapno){
-  case T_IRQ0 + IRQ_TIMER:
+  case  T_IRQ0 + IRQ_TIMER:
+  //comment the lines below including first break;
     if(cpuid() == 0){
       acquire(&tickslock);
       ticks++;
