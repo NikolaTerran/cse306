@@ -12,6 +12,7 @@ OBJS = \
 	kbd.o\
 	lapic.o\
 	log.o\
+	sound.o\
 	main.o\
 	mp.o\
 	picirq.o\
