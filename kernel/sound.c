@@ -7,17 +7,6 @@
 #include "sound.h"
 
 
-volatile unsigned int timer_ticks = 0; 
-void timer_wait(int ticks)
-{
-       for (int i = 0; i < ticks; i++) {
-
-       }
-       /*nsigned long eticks;
-       eticks = timer_ticks + ticks;
-       while(timer_ticks < eticks);*/
-}
-
  //Play sound using built in speaker
  static void play_sound(uint nFrequence) {
  	uint Div;
@@ -38,7 +27,7 @@ void timer_wait(int ticks)
        cprintf("Play sound done\n");
  }
  
- //make it shutup
+ //make it shutup. Comment this back in soon
  /*static void nosound() {
  	uchar tmp = inb(0x61) & 0xFC;
  
