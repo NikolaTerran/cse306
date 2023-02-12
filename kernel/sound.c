@@ -6,6 +6,7 @@
 #include "proc.h"
 #include "sound.h"
 
+int dur_left;
 
  //Play sound using built in speaker
  static void play_sound(uint nFrequence) {
@@ -28,16 +29,30 @@
  }
  
  //make it shutup. Comment this back in soon
- /*static void nosound() {
+ static void nosound() {
  	uchar tmp = inb(0x61) & 0xFC;
  
  	outb(0x61, tmp);
- }*/
+ }
+
+ int beep_timer() {
+    if (dur_left) {
+        dur_left--;
+        return 0;
+    }
+    else
+        return 1;
+ }
  
  //Make a beep
- void beep() {
-       play_sound(1000);
- 	 //timer_wait(100000);
- 	 //nosound();
+ void beep(int freq, int dur) {
+    dur_left = dur;
+    play_sound(freq);
+    while (!beep_timer());
+    nosound();
+
+
+ 	//timer_wait(dur);
+ 	//nosound();
           //set_PIT_2(old_frequency);
  }

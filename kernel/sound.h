@@ -1,1 +1,1 @@
-void beep();
+void beep(int, int);
