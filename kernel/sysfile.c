@@ -15,6 +15,7 @@
 #include "sleeplock.h"
 #include "file.h"
 #include "fcntl.h"
+#include "sound.h"
 
 // Fetch the nth word-sized system call argument as a file descriptor
 // and return both the descriptor and the corresponding struct file.
@@ -100,6 +101,18 @@ sys_close(void)
     return -1;
   myproc()->ofile[fd] = 0;
   fileclose(f);
+  return 0;
+}
+
+//get two ints from argint function
+int
+sys_beep(void)
+{
+  int freq;
+  int duration;
+  if(argint(0, &freq) < 0 || argint(1, &duration) < 0)
+    return -1;
+  beep(freq,duration);
   return 0;
 }
 
