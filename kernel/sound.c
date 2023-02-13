@@ -56,3 +56,8 @@ static void play_sound(uint nFrequence) {
  	//nosound();
           //set_PIT_2(old_frequency);
  }
+
+
+int play(struct sndpkt *pkts){
+	return 0;
+}
