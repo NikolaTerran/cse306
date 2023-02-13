@@ -104,18 +104,6 @@ sys_close(void)
   return 0;
 }
 
-//get two ints from argint function
-int
-sys_beep(void)
-{
-  int freq;
-  int duration;
-  if(argint(0, &freq) < 0 || argint(1, &duration) < 0)
-    return -1;
-  beep(freq,duration);
-  return 0;
-}
-
 int
 sys_fstat(void)
 {
@@ -454,5 +442,18 @@ sys_pipe(void)
   }
   fd[0] = fd0;
   fd[1] = fd1;
+  return 0;
+}
+
+int
+sys_beep(void)
+{
+  int freq, duration;
+
+  if (argint(0, &freq) < 0 || argint(1, &duration)) {
+    return -1;
+  }
+  cprintf("Inside sys_beep \n");
+  beep(freq, duration);
   return 0;
 }

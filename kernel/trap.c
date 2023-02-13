@@ -14,6 +14,8 @@ extern uint vectors[];  // in vectors.S: array of 256 entry pointers
 struct spinlock tickslock;
 uint ticks;
 
+extern int beep_timer();
+
 void
 tvinit(void)
 {
@@ -45,11 +47,11 @@ trap(struct trapframe *tf)
       exit();
     return;
   }
-
   switch(tf->trapno){
   case T_IRQ0 + IRQ_TIMER:
     if(cpuid() == 0){
       acquire(&tickslock);
+      beep_timer();
       ticks++;
       wakeup(&ticks);
       release(&tickslock);
@@ -68,6 +70,7 @@ trap(struct trapframe *tf)
     lapiceoi();
     break;
   case T_IRQ0 + IRQ_COM1:
+    //interrupts from serial port COM1
     uartintr();
     lapiceoi();
     break;
