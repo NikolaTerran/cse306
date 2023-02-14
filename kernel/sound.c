@@ -59,5 +59,8 @@ static void play_sound(uint nFrequence) {
 
 
 int play(struct sndpkt *pkts){
+	//proper way is to append pkts to a buffer
+	//then play from said buffer
+	beep(pkts->frequency,pkts->duration);
 	return 0;
 }

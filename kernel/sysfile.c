@@ -457,3 +457,16 @@ sys_beep(void)
   beep(freq, duration);
   return 0;
 }
+
+int
+sys_play(void)
+{
+  cprintf("Inside sys_play\n");
+  struct sndpkt* packet;
+  if (argptr(0,(char**)&packet,sizeof(struct sndpkt))) {
+    cprintf("Packet not copied in sys_play\n");
+    return -1;
+  }
+  play(packet);
+  return 0;
+}
