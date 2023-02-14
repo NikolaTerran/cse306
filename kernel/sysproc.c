@@ -99,7 +99,7 @@ sys_beep(void)
   if (argint(0, &freq) < 0 || argint(1, &duration)) {
     return -1;
   }
-  cprintf("Inside sys_beep \n");
+  // cprintf("Inside sys_beep \n");
   beep(freq, duration);
   return 0;
 }
@@ -107,7 +107,7 @@ sys_beep(void)
 int
 sys_play(void)
 {
-  cprintf("Inside sys_play\n");
+  // cprintf("Inside sys_play\n");
   struct sndpkt* packet;
   if (argptr(0,(char**)&packet,sizeof(struct sndpkt))) {
     cprintf("Packet not copied in sys_play\n");

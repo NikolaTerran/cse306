@@ -35,6 +35,7 @@ static void play_sound(uint nFrequence) {
  	outb(0x61, tmp);
  }
 
+//need to use some built-in function to count down time
  int beep_timer() {
     if (dur_left) {
         dur_left--;
@@ -58,9 +59,38 @@ static void play_sound(uint nFrequence) {
  }
 
 
+static struct sndpkt* sndbuf[max_length];
+static int head = 0;
+
+static void play_helper(){
+	beep(sndbuf[head]->frequency,sndbuf[head]->duration);
+	//implement some way for helper to know beep has finished playing
+	
+	//take out the packet
+	sndbuf[head] = 0;
+}
+
 int play(struct sndpkt *pkts){
 	//proper way is to append pkts to a buffer
 	//then play from said buffer
-	beep(pkts->frequency,pkts->duration);
+	
+	cprintf("head position: %d\n",head);
+
+	//insertion
+	if(sndbuf[head] == 0){
+		sndbuf[head] = pkts;
+	}else{
+		//need implement some waiting
+	}
+
+	play_helper();
+	//helper needs to complete first
+	
+	head += 1;
+	if(head == max_length){
+		head = 0;
+	}
+
+	// beep(pkts->frequency,pkts->duration);
 	return 0;
 }

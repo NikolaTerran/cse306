@@ -4,8 +4,6 @@ struct sndpkt {
 };
 
 // //wait for implementation
-
-// int max_length = 10;
 // struct LinkedList {
 //     struct sndpkt * packet;
 //     struct LinkedList * next;
@@ -13,8 +11,9 @@ struct sndpkt {
 
 // //or
 
-// struct sndpkt packet[max_length];
-
+//keep it small to test blocking
+#define max_length 5
+//buffer defined in sound.c
 
 void beep(int, int);
 int play(struct sndpkt *pkts);
