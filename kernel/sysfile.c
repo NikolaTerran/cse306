@@ -442,8 +442,5 @@ sys_pipe(void)
   fd[0] = fd0;
   fd[1] = fd1;
   return 0;
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> collab/main
+

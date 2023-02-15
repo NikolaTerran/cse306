@@ -49,7 +49,7 @@ static int dur_left;
 // therefore we decrement dur_left by a factor of 10
 int beep_timer() {
 	if (dur_left > 0) {
-		// cprintf("dur_left: %d\n",dur_left);
+		//cprintf("dur_left: %d\n",dur_left);
 		dur_left -= 10;
 		return 0;
 	}
@@ -58,10 +58,7 @@ int beep_timer() {
 }
  
  //Make a beep
-<<<<<<< HEAD
  void beep(uint freq, uint dur) {
-=======
- void beep(int freq, int dur) {
 
 	//preemptive return
 	if(freq == 0  && dur == 0){
@@ -69,7 +66,6 @@ int beep_timer() {
 		return;
 	}
 
->>>>>>> collab/main
     dur_left = dur;
     play_sound(freq);
 
@@ -77,36 +73,53 @@ int beep_timer() {
 	// without it, while loop never stops
     while (dur_left != 0){cprintf("");/*do nothing*/};
     nosound();
+
  	//timer_wait(dur);
- 	//nosound();
-<<<<<<< HEAD
           //set_PIT_2(old_frequency);
- }
-
-//Play music
-void play(struct sndpkt *pkts) {
-
-=======
-	//set_PIT_2(old_frequency);
  }
 
 
 static struct sndpkt* sndbuf[max_length];
 static int head = 0;
 
-static void play_helper(){
+/* static void play_helper(){
 	beep(sndbuf[head]->frequency,sndbuf[head]->duration);
 	//implement some way for helper to know beep has finished playing
 	
 	//take out the packet
 	sndbuf[head] = 0;
-}
+} */
 
-int play(struct sndpkt *pkts){
+void play(struct sndpkt *pkts){
 	//proper way is to append pkts to a buffer
 	//then play from said buffer
+
+
+    while (head <= max_length) {
+        if (head == max_length) {
+            //buffer full: loop around, change head to 0
+            //implement blocking
+            return;
+        }
+        else {
+            cprintf("head position: %d\n", head);
+            sndbuf[head] = pkts;
+            if (sndbuf[head]->frequency == 0 && sndbuf[head]->duration == 0) {
+                //reached the end of the sequence
+                return;
+            }
+            beep(sndbuf[head]->frequency, sndbuf[head]->duration);
+            head++; //increment index in buffer
+            pkts += 1; //move onto next sound pkt in sequence
+        }
+    }
+
+
+
+
+
 	
-	
+	/*
 
 	//insertion
 	if(sndbuf[head] == 0){
@@ -125,6 +138,6 @@ int play(struct sndpkt *pkts){
 	}
 
 	// beep(pkts->frequency,pkts->duration);
-	return 0;
->>>>>>> collab/main
+	//return 0;
+    */
 }

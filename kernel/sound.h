@@ -1,14 +1,6 @@
 struct sndpkt {
-<<<<<<< HEAD
 	uint frequency; //frequency in millihertz
 	uint duration;	//duration in milliseconds
-}
-
-void beep(uint, uint);
-void play(struct sndpkt *pkts);
-=======
-    uint frequency;   // frequency in millihertz
-    uint duration;    // duration in milliseconds
 };
 
 
@@ -17,7 +9,7 @@ void play(struct sndpkt *pkts);
 //buffer defined in sound.c
 
 
-void beep(int, int);
+void beep(uint, uint);
 int beep_timer();
-int play(struct sndpkt *pkts);
->>>>>>> collab/main
+void play(struct sndpkt *pkts);
+
