@@ -15,7 +15,6 @@
 #include "sleeplock.h"
 #include "file.h"
 #include "fcntl.h"
-#include "sound.h"
 
 // Fetch the nth word-sized system call argument as a file descriptor
 // and return both the descriptor and the corresponding struct file.
@@ -442,18 +441,5 @@ sys_pipe(void)
   }
   fd[0] = fd0;
   fd[1] = fd1;
-  return 0;
-}
-
-int
-sys_beep(void)
-{
-  int freq, duration;
-
-  if (argint(0, &freq) < 0 || argint(1, &duration)) {
-    return -1;
-  }
-  cprintf("Inside sys_beep \n");
-  beep(freq, duration);
   return 0;
 }

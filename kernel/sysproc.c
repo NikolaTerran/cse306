@@ -6,6 +6,37 @@
 #include "memlayout.h"
 #include "mmu.h"
 #include "proc.h"
+#include "sound.h"
+
+
+int
+sys_beep(void)
+{
+  int freq, duration;
+
+  if (argint(0, &freq) < 0 || argint(1, &duration)) {
+    return -1;
+  }
+  cprintf("Inside sys_beep \n");
+  beep(freq, duration);
+  return 0;
+}
+
+int sys_play(void)
+{
+  //obtain and validate the pkts pointer
+  //dispatch to play() in sound.c
+
+  cprintf("Inside sys_play \n");
+  struct sndpkt *packet;
+  if (argptr(0,(char**)&packet,sizeof(struct sndpkt))) {
+    cprintf("Packet not copied in sys_play\n");
+    return -1;
+  }
+  play(packet);
+  return 0;
+
+}
 
 int
 sys_fork(void)

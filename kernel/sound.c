@@ -28,7 +28,7 @@ int dur_left;
        cprintf("Play sound done\n");
  }
  
- //make it shutup. Comment this back in soon
+ //make it shutup
  static void nosound() {
  	uchar tmp = inb(0x61) & 0xFC;
  
@@ -45,7 +45,7 @@ int dur_left;
  }
  
  //Make a beep
- void beep(int freq, int dur) {
+ void beep(uint freq, uint dur) {
     dur_left = dur;
     play_sound(freq);
     while (!beep_timer());
@@ -56,3 +56,8 @@ int dur_left;
  	//nosound();
           //set_PIT_2(old_frequency);
  }
+
+//Play music
+void play(struct sndpkt *pkts) {
+
+}
