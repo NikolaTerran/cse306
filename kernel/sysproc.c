@@ -7,6 +7,7 @@
 #include "mmu.h"
 #include "proc.h"
 #include "sound.h"
+<<<<<<< HEAD
 
 
 int
@@ -37,6 +38,8 @@ int sys_play(void)
   return 0;
 
 }
+=======
+>>>>>>> collab/main
 
 int
 sys_fork(void)
@@ -119,4 +122,30 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
+}
+
+int
+sys_beep(void)
+{
+  int freq, duration;
+
+  if (argint(0, &freq) < 0 || argint(1, &duration)) {
+    return -1;
+  }
+  // cprintf("Inside sys_beep \n");
+  beep(freq, duration);
+  return 0;
+}
+
+int
+sys_play(void)
+{
+  // cprintf("Inside sys_play\n");
+  struct sndpkt* packet;
+  if (argptr(0,(char**)&packet,sizeof(struct sndpkt))) {
+    cprintf("Packet not copied in sys_play\n");
+    return -1;
+  }
+  play(packet);
+  return 0;
 }

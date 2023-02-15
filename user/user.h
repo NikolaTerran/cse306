@@ -1,5 +1,6 @@
 struct stat;
 struct rtcdate;
+struct sndpkt;
 
 // system calls
 int fork(void);
@@ -24,6 +25,7 @@ char* sbrk(int);
 int sleep(int);
 int uptime(void);
 int beep(int, int);
+int play(struct sndpkt*);
 
 // ulib.c
 int stat(char*, struct stat*);

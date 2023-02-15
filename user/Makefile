@@ -23,6 +23,7 @@ UPROGS=\
 	_wc\
 	_zombie\
 	_beep\
+	_play\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)

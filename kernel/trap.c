@@ -7,14 +7,13 @@
 #include "x86.h"
 #include "traps.h"
 #include "spinlock.h"
+#include "sound.h"
 
 // Interrupt descriptor table (shared by all CPUs).
 struct gatedesc idt[256];
 extern uint vectors[];  // in vectors.S: array of 256 entry pointers
 struct spinlock tickslock;
 uint ticks;
-
-extern int beep_timer();
 
 void
 tvinit(void)
@@ -51,8 +50,8 @@ trap(struct trapframe *tf)
   case T_IRQ0 + IRQ_TIMER:
     if(cpuid() == 0){
       acquire(&tickslock);
-      beep_timer();
       ticks++;
+      beep_timer();
       wakeup(&ticks);
       release(&tickslock);
     }
