@@ -69,7 +69,7 @@ int beep_timer() {
     dur_left = dur;
     play_sound(freq);
 
-	// cprintf has a side-effect we need
+	// cprintf has a side-effect we need.
 	// without it, while loop never stops
     while (dur_left != 0){cprintf("");/*do nothing*/};
     nosound();
