@@ -11,7 +11,7 @@ int
 main(int argc, char **argv)
 {
 
-  struct sndpkt packets[5];
+  struct sndpkt packets[7];
   packets[0].frequency = 1000;
   packets[0].duration = 1000;
 
@@ -24,8 +24,14 @@ main(int argc, char **argv)
   packets[3].frequency = 800;
   packets[3].duration = 1000;
 
-  packets[4].frequency = 0;
-  packets[4].duration = 0;
+  packets[4].frequency = 1000;
+  packets[4].duration = 1000;
+
+  packets[5].frequency = 900;
+  packets[5].duration = 1000;
+
+  packets[6].frequency = 0;
+  packets[6].duration = 0;
 
   play(&packets[0]);
 
