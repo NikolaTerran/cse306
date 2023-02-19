@@ -110,7 +110,7 @@ sys_play(void)
 {
   // cprintf("Inside sys_play\n");
   struct sndpkt* packet;
-  if (argptr(0,(char**)&packet,sizeof(struct sndpkt))) {
+  if (argptr(0,(char**)&packet,sizeof(struct sndpkt*))) {
     cprintf("Packet not copied in sys_play\n");
     return -1;
   }
