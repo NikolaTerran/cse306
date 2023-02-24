@@ -7,3 +7,8 @@ repo for cse306 homeworks
 3. sleep lock/ spin lock?
 4. make play.c able to process large file?
 
+# playlock(sleeplock) implementation
+define struct sleeplock playlock in sound.c
+add the definition to def.h
+init it in main.c
+acquire/release it in sys_play

@@ -8,7 +8,6 @@
 #include "proc.h"
 #include "sound.h"
 
-
 int
 sys_fork(void)
 {
@@ -100,7 +99,6 @@ sys_beep(void)
   if (argint(0, &freq) < 0 || argint(1, &duration)) {
     return -1;
   }
-  // cprintf("Inside sys_beep \n");
   beep(freq, duration);
   return 0;
 }
@@ -108,12 +106,16 @@ sys_beep(void)
 int
 sys_play(void)
 {
-  // cprintf("Inside sys_play\n");
   struct sndpkt* packet;
   if (argptr(0,(char**)&packet,sizeof(struct sndpkt*))) {
     cprintf("Packet not copied in sys_play\n");
     return -1;
   }
+
+  //sleeplock
+	acquiresleep(&playlock);
   play(packet);
+  releasesleep(&playlock);
+  
   return 0;
 }

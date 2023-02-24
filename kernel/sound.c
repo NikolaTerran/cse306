@@ -6,6 +6,9 @@
 #include "proc.h"
 #include "sound.h"
 #include "spinlock.h"
+#include "sleeplock.h"
+
+struct sleeplock playlock;
 
 //Play sound using built in speaker
 static void play_sound(uint nFrequence) {
@@ -50,7 +53,6 @@ static int dur_left;
 int beep_timer() {
 
 	if (dur_left > 0) {
-		//cprintf("dur_left: %d\n",dur_left);
 		dur_left -= 10;
 		return 0;
 	}
@@ -113,7 +115,6 @@ int append_to_buf(int start, int end, struct sndpkt *pkts) {
             head = 0;
         }
         head++;
-        cprintf("current head position : %d \n", head);
         pkts += 1;
     }
 
@@ -139,7 +140,6 @@ int play_from_buf(struct sndpkt *sndbuf[], int i, int j) {
     		return 1;
 
     	if (curr_pkt_dur >= 10) {
-    		cprintf("Playing freq %d for %d ms \n", curr_pkt_freq, curr_pkt_dur);
     		beep(curr_pkt_freq, curr_pkt_dur);
     		consumed++;
     		i++;
@@ -149,7 +149,6 @@ int play_from_buf(struct sndpkt *sndbuf[], int i, int j) {
     	}
     	else {
     		//play the note
-    		cprintf("Playing freq %d for 10 ms (pkt actually %d ms)\n", curr_pkt_freq, curr_pkt_dur);
     		beep(curr_pkt_freq, 10);
 
     		//get the next pkt
@@ -159,7 +158,6 @@ int play_from_buf(struct sndpkt *sndbuf[], int i, int j) {
     			count_ms += sndbuf[k]->duration;
     			if (count_ms == 10) {
     				//lands exactly at beginning of next packet
-    				cprintf("Discarding pkt with freq %d, duration %d \n", sndbuf[k]->frequency, sndbuf[k]->duration);
     				i=k+1;
     				curr_pkt = sndbuf[i];
     				curr_pkt_freq = curr_pkt->frequency;
@@ -176,7 +174,6 @@ int play_from_buf(struct sndpkt *sndbuf[], int i, int j) {
     				break;
     			}
     			consumed++;
-    			cprintf("Discarding pkt with freq %d, duration %d \n", sndbuf[k]->frequency, sndbuf[k]->duration);
     		}
 
     	}
@@ -191,15 +188,13 @@ void play(struct sndpkt *pkts){
 	//proper way is to append pkts to a buffer
 	//then play from said buffer
 
-	//SLEEP LOCK: process needs exclusive access to the sound facility
-
 	int buf_flag, play_flag;
 	int first_pass=1;
 	int buf1 = 1; //first half of buf
 	int buf2 = 0; //second half of buf
 
 	struct spinlock lock;
-	initlock(&lock,"sound");
+	initlock(&lock,"buf");
 
 	while (1) {
 		if (first_pass) {
@@ -289,8 +284,7 @@ void play(struct sndpkt *pkts){
 
 		}
 	}
-
-	//SLEEP LOCK: process needs exclusive access to the sound facility
+	
 	return; 
 
 	
