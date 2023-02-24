@@ -9,6 +9,7 @@
 #include "sleeplock.h"
 
 struct sleeplock playlock;
+struct spinlock buflock;
 
 //Play sound using built in speaker
 static void play_sound(uint nFrequence) {
@@ -193,18 +194,15 @@ void play(struct sndpkt *pkts){
 	int buf1 = 1; //first half of buf
 	int buf2 = 0; //second half of buf
 
-	struct spinlock lock;
-	initlock(&lock,"buf");
-
 	while (1) {
 		if (first_pass) {
 			first_pass=0;
 
 			//SPINLOCK
-			acquire(&lock);
+			acquire(&buflock);
 			buf_flag = append_to_buf(0, max_length, pkts);
 			pkts += max_length; //increment pointer, since it's pass by value
-			release(&lock);
+			release(&buflock);
 
 			if (!buf_flag) {
 				//SLEEP
@@ -231,10 +229,10 @@ void play(struct sndpkt *pkts){
 			buf1=0;
 			buf2=1;
 			//SPINLOCK 
-			acquire(&lock);
+			acquire(&buflock);
 			buf_flag = append_to_buf(0, max_length/2,pkts);
 			pkts += max_length/2;
-			release(&lock);
+			release(&buflock);
 
 			if (!buf_flag) {
 				//SLEEP
@@ -261,10 +259,10 @@ void play(struct sndpkt *pkts){
 			buf1=1;
 
 			//SPINLOCK 
-			acquire(&lock);
+			acquire(&buflock);
 			buf_flag = append_to_buf(max_length/2, max_length,pkts);
 			pkts += max_length/2;
-			release(&lock);
+			release(&buflock);
 
 			if (!buf_flag) {
 				//SLEEP

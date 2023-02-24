@@ -12,3 +12,9 @@ define struct sleeplock playlock in sound.c
 add the definition to def.h
 init it in main.c
 acquire/release it in sys_play
+
+# spinlock implementation
+define struct spinlock buflock in sound.c
+add the definition to def.h
+init it in main.c
+acquire/release it in sound.c

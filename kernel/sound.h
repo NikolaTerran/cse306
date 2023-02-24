@@ -5,9 +5,8 @@ struct sndpkt {
 
 
 //keep it small to test blocking
-#define max_length 12
+#define max_length 2
 //buffer defined in sound.c
-
 
 void beep(uint, uint);
 int beep_timer();
