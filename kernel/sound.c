@@ -89,15 +89,6 @@ int beep_timer() {
 static struct sndpkt* sndbuf[max_length];
 static int head = 0;
 
-/* static void play_helper(){
-	beep(sndbuf[head]->frequency,sndbuf[head]->duration);
-	//implement some way for helper to know beep has finished playing
-	
-	//take out the packet
-	sndbuf[head] = 0;
-} */
-
-
 /* Appends sound pkts to buffer from start index to end index (end index excluded).
 Returns 1 if all sound pkts have been added before buffer gets full.
 Returns 0 if buffer is full but there are still more pkts to be played.
@@ -195,6 +186,7 @@ void play(struct sndpkt *pkts){
 	int buf2 = 0; //second half of buf
 
 	while (1) {
+
 		if (first_pass) {
 			first_pass=0;
 
@@ -284,61 +276,4 @@ void play(struct sndpkt *pkts){
 	}
 	
 	return; 
-
-	
-
-
-
-
-
-
-
-    
-
-
-    /* while (head <= max_length) {
-        if (head == max_length) {
-            //buffer full: loop around, change head to 0
-            //implement blocking
-            return;
-        }
-        else {
-            cprintf("head position: %d\n", head);
-            sndbuf[head] = pkts;
-            if (sndbuf[head]->frequency == 0 && sndbuf[head]->duration == 0) {
-                //reached the end of the sequence
-                return;
-            }
-            beep(sndbuf[head]->frequency, sndbuf[head]->duration);
-            head++; //increment index in buffer
-            pkts += 1; //move onto next sound pkt in sequence
-        }
-    } */
-
-
-
-
-
-	
-	/*
-
-	//insertion
-	if(sndbuf[head] == 0){
-		sndbuf[head] = pkts;
-	}else{
-		//need implement some waiting
-	}
-
-	cprintf("head position: %d\n",head);
-	play_helper();
-	//helper needs to complete first
-	
-	head += 1;
-	if(head == max_length){
-		head = 0;
-	}
-
-	// beep(pkts->frequency,pkts->duration);
-	//return 0;
-    */
 }

@@ -4,4 +4,5 @@ _*
 *.d
 *.asm
 *.sym
+*.img
 .gdbinit
