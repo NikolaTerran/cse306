@@ -40,9 +40,9 @@ p_atoi(const char *s)
       }
       s++;
     }
-    printf(1,"\ns: %d\n",*s);
       
     s++;
+    printf(1,"\ns: %d\n",*s);
 
     packets[index].frequency = freq;
     packets[index].duration = duration;
