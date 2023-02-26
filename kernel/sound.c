@@ -10,7 +10,6 @@
 
 struct sleeplock playlock;
 struct spinlock buflock;
-struct spinlock sleepwakelock;
 
 //Play sound using built in speaker
 static void play_sound(uint nFrequence) {
@@ -95,7 +94,7 @@ int buf_head = 0;
 int pkt_inc = 0;
 int free_space = max_length;
 
-int append_to_buf(struct sndpkt *pkts) {
+struct sndpkt * append_to_buf(struct sndpkt *pkts) {
 
 	while(free_space != 0){
 		if(buf_head == max_length){
@@ -106,12 +105,12 @@ int append_to_buf(struct sndpkt *pkts) {
 			//make it zero
 			sndbuf[buf_head].frequency = 0;
 			sndbuf[buf_head].duration = 0;
-			// cprintf("return from append_to_buf:\n");
-			// cprintf("sndbuf[0]: %d\n",sndbuf[0].frequency);
-			// cprintf("sndbuf[1]: %d\n",sndbuf[1].frequency);
-			// cprintf("sndbuf[2]: %d\n",sndbuf[2].frequency);
-			// cprintf("sndbuf[3]: %d\n",sndbuf[3].frequency);
-            return 1;
+			cprintf("return from append_to_buf:\n");
+			cprintf("sndbuf[0]: %d\n",sndbuf[0].frequency);
+			cprintf("sndbuf[1]: %d\n",sndbuf[1].frequency);
+			cprintf("sndbuf[2]: %d\n",sndbuf[2].frequency);
+			cprintf("sndbuf[3]: %d\n",sndbuf[3].frequency);
+            return 0;
         }
 
 		// cprintf("buf_head: %d, frequency: %d\n",buf_head,pkts->frequency);
@@ -123,13 +122,12 @@ int append_to_buf(struct sndpkt *pkts) {
 		pkt_inc++;
 	}
     //at this point, buffer is full but there are more pkts to be played
-	// cprintf("return from append_to_buf:\n");
-	// cprintf("buf_head: %d\n",buf_head);
-	// cprintf("sndbuf[0]: %d\n",sndbuf[0].frequency);
-	// cprintf("sndbuf[1]: %d\n",sndbuf[1].frequency);
-	// cprintf("sndbuf[2]: %d\n",sndbuf[2].frequency);
-	// cprintf("sndbuf[3]: %d\n",sndbuf[3].frequency);
-    return 0;
+	cprintf("return from append_to_buf:\n");
+	cprintf("sndbuf[0]: %d\n",sndbuf[0].frequency);
+	cprintf("sndbuf[1]: %d\n",sndbuf[1].frequency);
+	cprintf("sndbuf[2]: %d\n",sndbuf[2].frequency);
+	cprintf("sndbuf[3]: %d\n",sndbuf[3].frequency);
+    return pkts;
 }
 
 /* Plays the sound pkts from the buffer from index i (start) to index j (end).
@@ -163,6 +161,14 @@ int play_from_buf() {
 
     		free_space++;
     		play_head++;
+
+			if (free_space >= max_length/2) {
+				//enough packets have been consumed
+				//WAKEUP process waiting for space in buf
+				cprintf("Waking up proc\n");
+				wakeup(&free_space);
+				
+			}
     	}
     	else{
 			// //please change else accrodingly
@@ -207,23 +213,19 @@ int play_from_buf() {
 void play(struct sndpkt *pkts){
 	//proper way is to append pkts to a buffer
 	//then play from said buffer
-	int buf_flag;
+	// int buf_flag;
 
 	while (1) {
 		//SPINLOCK 
 		acquire(&buflock);
 		cprintf("called playing\n");
-		while (free_space == 0) { //buffer currently full
+		if (free_space == 0) { //buffer currently full
 			cprintf("Buffer full, sleeping on chan\n");
 			sleep(&free_space, &buflock);
 		}
-		buf_flag = append_to_buf(pkts);
-		pkts += pkt_inc;
-		pkt_inc = 0;
+		pkts = append_to_buf(pkts);
+		// pkt_inc = 0;
 		release(&buflock);
-
-		cprintf("All packets appended!\n");
-		releasesleep(&playlock);
 
 		if(isplaying){
 			// donothing
@@ -231,16 +233,9 @@ void play(struct sndpkt *pkts){
 			play_from_buf();
 		}
 		
-		if (free_space >= max_length/2) {
-			//enough packets have been consumed
-			//WAKEUP process waiting for space in buf
-			cprintf("Waking up proc\n");
-			wakeup(&free_space);
-		}
-		
-		if(buf_flag){
-			//otherwise, all sound pkts are done playing
-			cprintf("DONE!");
+		if(!pkts){
+			cprintf("All packets appended!\n");
+			releasesleep(&playlock);
 			break;
 		}
 	}
