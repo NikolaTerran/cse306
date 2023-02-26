@@ -95,6 +95,7 @@ int pkt_inc = 0;
 int free_space = max_length;
 
 struct sndpkt * append_to_buf(struct sndpkt *pkts) {
+	cprintf("begin free_space : %d\n",free_space);
 
 	while(free_space != 0){
 		if(buf_head == max_length){
@@ -110,10 +111,11 @@ struct sndpkt * append_to_buf(struct sndpkt *pkts) {
 			cprintf("sndbuf[1]: %d\n",sndbuf[1].frequency);
 			cprintf("sndbuf[2]: %d\n",sndbuf[2].frequency);
 			cprintf("sndbuf[3]: %d\n",sndbuf[3].frequency);
+			cprintf("end free_space : %d\n",free_space);
             return 0;
         }
 
-		// cprintf("buf_head: %d, frequency: %d\n",buf_head,pkts->frequency);
+		cprintf("buf_head: %d, frequency: %d\n",buf_head,pkts->frequency);
 		sndbuf[buf_head].frequency=pkts->frequency;
 		sndbuf[buf_head].duration=pkts->duration;
 		buf_head++;
@@ -127,6 +129,9 @@ struct sndpkt * append_to_buf(struct sndpkt *pkts) {
 	cprintf("sndbuf[1]: %d\n",sndbuf[1].frequency);
 	cprintf("sndbuf[2]: %d\n",sndbuf[2].frequency);
 	cprintf("sndbuf[3]: %d\n",sndbuf[3].frequency);
+	cprintf("end free_space : %d\n",free_space);
+	//add this condition to release sleeplock early
+	if (pkts->duration == 0 && pkts->frequency == 0) return 0;
     return pkts;
 }
 
@@ -160,6 +165,7 @@ int play_from_buf() {
     		sndbuf[play_head].duration=0;
 
     		free_space++;
+			cprintf("free_space after play: %d\n",free_space);
     		play_head++;
 
 			if (free_space >= max_length/2) {
@@ -214,7 +220,6 @@ void play(struct sndpkt *pkts){
 	//proper way is to append pkts to a buffer
 	//then play from said buffer
 	// int buf_flag;
-
 	while (1) {
 		//SPINLOCK 
 		acquire(&buflock);
@@ -227,15 +232,19 @@ void play(struct sndpkt *pkts){
 		// pkt_inc = 0;
 		release(&buflock);
 
+		if(!pkts){
+			cprintf("All packets appended!\n");
+			releasesleep(&playlock);
+		}
+
 		if(isplaying){
 			// donothing
 		}else{
+			isplaying = 1;
 			play_from_buf();
 		}
 		
 		if(!pkts){
-			cprintf("All packets appended!\n");
-			releasesleep(&playlock);
 			break;
 		}
 	}
