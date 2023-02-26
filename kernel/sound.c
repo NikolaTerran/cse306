@@ -96,13 +96,12 @@ int free_space = max_length;
 
 int append_to_buf(struct sndpkt *pkts) {
 
-	if(buf_head == max_length){
-		buf_head = 0;
-	}
+	while(free_space != 0){
+		if(buf_head == max_length){
+			buf_head = 0;
+		}
 
-    for (int i = buf_head; i < max_length; i++) {
-    
-        if (pkts->duration == 0 && pkts->frequency == 0) {
+		if (pkts->duration == 0 && pkts->frequency == 0) {
 			//make it zero
 			sndbuf[buf_head].frequency = 0;
 			sndbuf[buf_head].duration = 0;
@@ -119,7 +118,8 @@ int append_to_buf(struct sndpkt *pkts) {
 		buf_head++;
 		free_space--; //May need a lock for free_space?
         pkts += 1;
-    }
+
+	}
     //at this point, buffer is full but there are more pkts to be played
 	cprintf("return from append_to_buf:\n");
 	cprintf("sndbuf[0]: %d\n",sndbuf[0].frequency);
