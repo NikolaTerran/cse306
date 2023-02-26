@@ -186,6 +186,10 @@ int play_from_buf() {
 			//duration less than 10
     		int count_ms=0;
 
+    		if (sndbuf[play_head+1].frequency==0 && sndbuf[play_head+1].duration==0){
+    			break;
+    		}
+
     		cprintf("Playing pkt freq: %d, dur: %d\n", curr_pkt_freq, 10);
     		beep(curr_pkt_freq,10);
     		//get the next pkt
