@@ -85,7 +85,7 @@ int beep_timer() {
  }
 
 
-static struct sndpkt* sndbuf[max_length];
+static struct sndpkt sndbuf[max_length];
 
 /* Appends sound pkts to buffer from start index to end index (end index excluded).
 Returns 1 if all sound pkts have been added before buffer gets full.
@@ -98,16 +98,16 @@ int append_to_buf(struct sndpkt *pkts) {
 
 	cprintf("before:\n");
 	cprintf("pointer sndbuf: %p\n",sndbuf[0]);
-	cprintf("sndbuf[0]: %d\n",sndbuf[0]->frequency);
-	cprintf("sndbuf[1]: %d\n",sndbuf[1]->frequency);
-	cprintf("sndbuf[2]: %d\n",sndbuf[2]->frequency);
-	cprintf("sndbuf[3]: %d\n",sndbuf[3]->frequency);
-	cprintf("sndbuf[4]: %d\n",sndbuf[4]->frequency);
-	cprintf("sndbuf[5]: %d\n",sndbuf[5]->frequency);
-	cprintf("sndbuf[6]: %d\n",sndbuf[6]->frequency);
-	cprintf("sndbuf[7]: %d\n",sndbuf[7]->frequency);
-	cprintf("sndbuf[8]: %d\n",sndbuf[8]->frequency);
-	cprintf("sndbuf[9]: %d\n",sndbuf[9]->frequency);
+	cprintf("sndbuf[0]: %d\n",sndbuf[0].frequency);
+	cprintf("sndbuf[1]: %d\n",sndbuf[1].frequency);
+	cprintf("sndbuf[2]: %d\n",sndbuf[2].frequency);
+	cprintf("sndbuf[3]: %d\n",sndbuf[3].frequency);
+	cprintf("sndbuf[4]: %d\n",sndbuf[4].frequency);
+	cprintf("sndbuf[5]: %d\n",sndbuf[5].frequency);
+	cprintf("sndbuf[6]: %d\n",sndbuf[6].frequency);
+	cprintf("sndbuf[7]: %d\n",sndbuf[7].frequency);
+	cprintf("sndbuf[8]: %d\n",sndbuf[8].frequency);
+	cprintf("sndbuf[9]: %d\n",sndbuf[9].frequency);
 
 	if(buf_head == max_length){
 		buf_head = 0;
@@ -117,27 +117,26 @@ int append_to_buf(struct sndpkt *pkts) {
     
         if (pkts->duration == 0 && pkts->frequency == 0) {
 			//make it zero
-			sndbuf[buf_head]->frequency = 0;
-			sndbuf[buf_head]->duration = 0;
-			buf_head++;
-			free_space--;
+			sndbuf[buf_head].frequency = 0;
+			sndbuf[buf_head].duration = 0;
 			cprintf("after:\n");
 			cprintf("pointer sndbuf: %p\n",sndbuf);
 			cprintf("pointer sndbuf[0]: %p\n",sndbuf[0]);
-			cprintf("sndbuf[0]: %d\n",sndbuf[0]->frequency);
-			cprintf("sndbuf[1]: %d\n",sndbuf[1]->frequency);
-			cprintf("sndbuf[2]: %d\n",sndbuf[2]->frequency);
-			cprintf("sndbuf[3]: %d\n",sndbuf[3]->frequency);
-			cprintf("sndbuf[4]: %d\n",sndbuf[4]->frequency);
-			cprintf("sndbuf[5]: %d\n",sndbuf[5]->frequency);
-			cprintf("sndbuf[6]: %d\n",sndbuf[6]->frequency);
-			cprintf("sndbuf[7]: %d\n",sndbuf[7]->frequency);
-			cprintf("sndbuf[8]: %d\n",sndbuf[8]->frequency);
-			cprintf("sndbuf[9]: %d\n",sndbuf[9]->frequency);
+			cprintf("sndbuf[0]: %d\n",sndbuf[0].frequency);
+			cprintf("sndbuf[1]: %d\n",sndbuf[1].frequency);
+			cprintf("sndbuf[2]: %d\n",sndbuf[2].frequency);
+			cprintf("sndbuf[3]: %d\n",sndbuf[3].frequency);
+			cprintf("sndbuf[4]: %d\n",sndbuf[4].frequency);
+			cprintf("sndbuf[5]: %d\n",sndbuf[5].frequency);
+			cprintf("sndbuf[6]: %d\n",sndbuf[6].frequency);
+			cprintf("sndbuf[7]: %d\n",sndbuf[7].frequency);
+			cprintf("sndbuf[8]: %d\n",sndbuf[8].frequency);
+			cprintf("sndbuf[9]: %d\n",sndbuf[9].frequency);
             return 1;
         }
 
-		sndbuf[buf_head]=pkts;
+		sndbuf[buf_head].frequency=pkts->frequency;
+		sndbuf[buf_head].duration=pkts->duration;
 		cprintf("buf_head: %d\n",buf_head);
 		cprintf("frequency: %d\n",pkts->frequency);
 		buf_head++;
@@ -156,28 +155,25 @@ int play_head = 0;
 int isplaying = 0;
 
 int play_from_buf() {
-    struct sndpkt *curr_pkt = sndbuf[play_head];
-    int curr_pkt_freq = curr_pkt->frequency;
-    int curr_pkt_dur = curr_pkt->duration;
 
     while (1) {
-    	int count_ms = 0;
+    	// int count_ms = 0;
 
 		if(play_head == max_length){
 			play_head = 0;
 		}
 
-    	if (sndbuf[play_head]->frequency == 0 && sndbuf[play_head]->duration == 0){
+    	if (sndbuf[play_head].frequency == 0 && sndbuf[play_head].duration == 0){
 			isplaying = 0;
 			cprintf("play_head: %d\n",play_head);
-			cprintf("freq: %d\n",sndbuf[play_head]->frequency);
+			cprintf("freq: %d\n",sndbuf[play_head].frequency);
 			return 1;
 		}
 
-    	else if (curr_pkt_dur >= 10) {
+    	else if (sndbuf[play_head].duration >= 10) {
 			cprintf("play head: %d\n", play_head);
-			cprintf("frequency: %d\n", sndbuf[play_head]->frequency);
-    		beep(sndbuf[play_head]->frequency, sndbuf[play_head]->duration);
+			cprintf("frequency: %d\n", sndbuf[play_head].frequency);
+    		beep(sndbuf[play_head].frequency, sndbuf[play_head].duration);
 			//free the buffer
 
 			//sndbuf[play_head]->frequency=0;
@@ -187,40 +183,40 @@ int play_from_buf() {
     		play_head++;
     	}
     	else{
-			//please change else accrodingly
-			cprintf("not called\n");
-    		//play the note
-			cprintf("play head: %d\n", play_head);
-			cprintf("playing frequency: %d\n",curr_pkt_freq);
-    		beep(curr_pkt_freq, 10);
-			//free the buffer
-			// curr_pkt->frequency=0;
-    		// curr_pkt->duration=0;
+			// //please change else accrodingly
+			// cprintf("not called\n");
+    		// //play the note
+			// cprintf("play head: %d\n", play_head);
+			// cprintf("playing frequency: %d\n",curr_pkt_freq);
+    		// beep(curr_pkt_freq, 10);
+			// //free the buffer
+			// // curr_pkt->frequency=0;
+    		// // curr_pkt->duration=0;
 
-    		//get the next pkt
-    		count_ms += curr_pkt_dur;
-    		for (int k = play_head+1; k < max_length; k++) {
+    		// //get the next pkt
+    		// count_ms += curr_pkt_dur;
+    		// for (int k = play_head+1; k < max_length; k++) {
 
-    			count_ms += sndbuf[k]->duration;
-    			if (count_ms == 10) {
-    				//lands exactly at beginning of next packet
-    				play_head=k+1;
-    				curr_pkt = sndbuf[play_head];
-    				curr_pkt_freq = curr_pkt->frequency;
-    				curr_pkt_dur = curr_pkt->duration;
-    				break;
+    		// 	count_ms += sndbuf[k]->duration;
+    		// 	if (count_ms == 10) {
+    		// 		//lands exactly at beginning of next packet
+    		// 		play_head=k+1;
+    		// 		curr_pkt = sndbuf[play_head];
+    		// 		curr_pkt_freq = curr_pkt->frequency;
+    		// 		curr_pkt_dur = curr_pkt->duration;
+    		// 		break;
 
-    			}
-    			if (count_ms > 10) {
-    				//lands in the middle of a packet
-    				play_head=k;
-    				curr_pkt = sndbuf[k];
-    				curr_pkt_freq = curr_pkt->frequency;
-    				curr_pkt_dur = count_ms-10;
-    				break;
-    			}
-    			free_space++;
-    		}
+    		// 	}
+    		// 	if (count_ms > 10) {
+    		// 		//lands in the middle of a packet
+    		// 		play_head=k;
+    		// 		curr_pkt = sndbuf[k];
+    		// 		curr_pkt_freq = curr_pkt->frequency;
+    		// 		curr_pkt_dur = count_ms-10;
+    		// 		break;
+    		// 	}
+    		// 	free_space++;
+    		// }
     	}
     }
     return 0;
@@ -229,14 +225,12 @@ int play_from_buf() {
 void play(struct sndpkt *pkts){
 	//proper way is to append pkts to a buffer
 	//then play from said buffer
-
-	acquiresleep(&playlock);
 	int buf_flag;
 
 	while (1) {
 		//SPINLOCK 
 		acquire(&buflock);
-
+		cprintf("called playing\n");
 		while (free_space == 0) { //buffer currently full
 			cprintf("Buffer full, sleeping on chan\n");
 			sleep(&free_space, &buflock);

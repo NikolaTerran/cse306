@@ -115,7 +115,6 @@ sys_play(void)
   //sleeplock
 	acquiresleep(&playlock);
   play(packet);
-  releasesleep(&playlock);
   
   return 0;
 }
