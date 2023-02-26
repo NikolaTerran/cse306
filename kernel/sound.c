@@ -144,6 +144,9 @@ int isplaying = 0;
 
 int play_from_buf() {
 
+	int curr_pkt_freq = sndbuf[play_head].frequency;
+    int curr_pkt_dur = sndbuf[play_head].duration;
+
     while (1) {
     	// int count_ms = 0;
 
@@ -151,14 +154,14 @@ int play_from_buf() {
 			play_head = 0;
 		}
 
-    	if (sndbuf[play_head].frequency == 0 && sndbuf[play_head].duration == 0){
+    	if (curr_pkt_freq == 0 && curr_pkt_dur == 0){
 			isplaying = 0;
 			cprintf("return from play_from_buf\n");
 			return 1;
 		}
-    	else if (sndbuf[play_head].duration >= 10) {
-			cprintf("play head: %d || frequency: %d\n", play_head,sndbuf[play_head].frequency);
-    		beep(sndbuf[play_head].frequency, sndbuf[play_head].duration);
+		else if (curr_pkt_dur >= 10) {
+			cprintf("play head: %d || frequency: %d\n, dur: %d\n", play_head,curr_pkt_freq, curr_pkt_dur);
+    		beep(curr_pkt_freq, curr_pkt_dur);
 			
 			//free the buffer
 			sndbuf[play_head].frequency=0;
@@ -167,8 +170,10 @@ int play_from_buf() {
     		free_space++;
 			cprintf("free_space after play: %d\n",free_space);
     		play_head++;
+    		curr_pkt_freq = sndbuf[play_head].frequency;
+    		curr_pkt_dur = sndbuf[play_head].duration;
 
-			if (free_space >= max_length/2) {
+    		if (free_space >= max_length/2) {
 				//enough packets have been consumed
 				//WAKEUP process waiting for space in buf
 				cprintf("Waking up proc\n");
@@ -176,41 +181,58 @@ int play_from_buf() {
 				
 			}
     	}
+
     	else{
-			// //please change else accrodingly
-			// cprintf("not called\n");
-    		// //play the note
-			// cprintf("play head: %d\n", play_head);
-			// cprintf("playing frequency: %d\n",curr_pkt_freq);
-    		// beep(curr_pkt_freq, 10);
-			// //free the buffer
-			// // curr_pkt->frequency=0;
-    		// // curr_pkt->duration=0;
+			//duration less than 10
+    		int count_ms=0;
 
-    		// //get the next pkt
-    		// count_ms += curr_pkt_dur;
-    		// for (int k = play_head+1; k < max_length; k++) {
+    		cprintf("Playing pkt freq: %d, dur: %d\n", curr_pkt_freq, 10);
+    		beep(curr_pkt_freq,10);
+    		//get the next pkt
+    		count_ms += curr_pkt_dur;
+    		for (int k = play_head+1; k < max_length; k++) {
 
-    		// 	count_ms += sndbuf[k]->duration;
-    		// 	if (count_ms == 10) {
-    		// 		//lands exactly at beginning of next packet
-    		// 		play_head=k+1;
-    		// 		curr_pkt = sndbuf[play_head];
-    		// 		curr_pkt_freq = curr_pkt->frequency;
-    		// 		curr_pkt_dur = curr_pkt->duration;
-    		// 		break;
+    			if (sndbuf[k].frequency==0 && sndbuf[k].duration==0){
+    				break;
+    			}
 
-    		// 	}
-    		// 	if (count_ms > 10) {
-    		// 		//lands in the middle of a packet
-    		// 		play_head=k;
-    		// 		curr_pkt = sndbuf[k];
-    		// 		curr_pkt_freq = curr_pkt->frequency;
-    		// 		curr_pkt_dur = count_ms-10;
-    		// 		break;
-    		// 	}
-    		// 	free_space++;
-    		// }
+    			count_ms += sndbuf[k].duration;
+
+    			if (count_ms == 10) {
+    				//lands exactly at beginning of next packet
+
+    				//free the current pkt at index k
+    				cprintf("Discarding pkt freq: %d, dur: %d\n", sndbuf[k].frequency, sndbuf[k].duration);
+    		 		sndbuf[k].frequency=0;
+    				sndbuf[k].duration=0;
+    				free_space++;
+
+    		 		play_head=k+1;
+    		 		curr_pkt_freq = sndbuf[play_head].frequency;
+    				curr_pkt_dur = sndbuf[play_head].duration;
+    		 		break;
+    			}
+    			if (count_ms > 10) {
+    		 		//lands in the middle of a packet
+    		 		play_head=k;
+    		 		curr_pkt_freq = sndbuf[play_head].frequency;
+    		 		curr_pkt_dur = count_ms-10;
+    		 		break;
+    		 	}
+    		 	cprintf("Discarding pkt freq: %d, dur: %d\n", sndbuf[k].frequency, sndbuf[k].duration);
+    		 	//free the current pkt at index k
+    		 	sndbuf[k].frequency=0;
+    			sndbuf[k].duration=0;
+    		 	free_space++;
+
+    		 	if (free_space >= max_length/2) {
+					//enough packets have been consumed
+					//WAKEUP process waiting for space in buf
+					cprintf("Waking up proc\n");
+					wakeup(&free_space);
+				}
+    		}
+
     	}
     }
     return 0;
