@@ -96,19 +96,6 @@ int free_space = max_length;
 
 int append_to_buf(struct sndpkt *pkts) {
 
-	cprintf("before:\n");
-	cprintf("pointer sndbuf: %p\n",sndbuf[0]);
-	cprintf("sndbuf[0]: %d\n",sndbuf[0].frequency);
-	cprintf("sndbuf[1]: %d\n",sndbuf[1].frequency);
-	cprintf("sndbuf[2]: %d\n",sndbuf[2].frequency);
-	cprintf("sndbuf[3]: %d\n",sndbuf[3].frequency);
-	cprintf("sndbuf[4]: %d\n",sndbuf[4].frequency);
-	cprintf("sndbuf[5]: %d\n",sndbuf[5].frequency);
-	cprintf("sndbuf[6]: %d\n",sndbuf[6].frequency);
-	cprintf("sndbuf[7]: %d\n",sndbuf[7].frequency);
-	cprintf("sndbuf[8]: %d\n",sndbuf[8].frequency);
-	cprintf("sndbuf[9]: %d\n",sndbuf[9].frequency);
-
 	if(buf_head == max_length){
 		buf_head = 0;
 	}
@@ -119,31 +106,26 @@ int append_to_buf(struct sndpkt *pkts) {
 			//make it zero
 			sndbuf[buf_head].frequency = 0;
 			sndbuf[buf_head].duration = 0;
-			cprintf("after:\n");
-			cprintf("pointer sndbuf: %p\n",sndbuf);
-			cprintf("pointer sndbuf[0]: %p\n",sndbuf[0]);
+			cprintf("return from append_to_buf:\n");
 			cprintf("sndbuf[0]: %d\n",sndbuf[0].frequency);
 			cprintf("sndbuf[1]: %d\n",sndbuf[1].frequency);
 			cprintf("sndbuf[2]: %d\n",sndbuf[2].frequency);
 			cprintf("sndbuf[3]: %d\n",sndbuf[3].frequency);
-			cprintf("sndbuf[4]: %d\n",sndbuf[4].frequency);
-			cprintf("sndbuf[5]: %d\n",sndbuf[5].frequency);
-			cprintf("sndbuf[6]: %d\n",sndbuf[6].frequency);
-			cprintf("sndbuf[7]: %d\n",sndbuf[7].frequency);
-			cprintf("sndbuf[8]: %d\n",sndbuf[8].frequency);
-			cprintf("sndbuf[9]: %d\n",sndbuf[9].frequency);
             return 1;
         }
 
 		sndbuf[buf_head].frequency=pkts->frequency;
 		sndbuf[buf_head].duration=pkts->duration;
-		cprintf("buf_head: %d\n",buf_head);
-		cprintf("frequency: %d\n",pkts->frequency);
 		buf_head++;
 		free_space--; //May need a lock for free_space?
         pkts += 1;
     }
     //at this point, buffer is full but there are more pkts to be played
+	cprintf("return from append_to_buf:\n");
+	cprintf("sndbuf[0]: %d\n",sndbuf[0].frequency);
+	cprintf("sndbuf[1]: %d\n",sndbuf[1].frequency);
+	cprintf("sndbuf[2]: %d\n",sndbuf[2].frequency);
+	cprintf("sndbuf[3]: %d\n",sndbuf[3].frequency);
     return 0;
 }
 
@@ -165,17 +147,15 @@ int play_from_buf() {
 
     	if (sndbuf[play_head].frequency == 0 && sndbuf[play_head].duration == 0){
 			isplaying = 0;
-			cprintf("play_head: %d\n",play_head);
-			cprintf("freq: %d\n",sndbuf[play_head].frequency);
+			cprintf("return from play_from_buf\n");
 			return 1;
 		}
 
     	else if (sndbuf[play_head].duration >= 10) {
-			cprintf("play head: %d\n", play_head);
-			cprintf("frequency: %d\n", sndbuf[play_head].frequency);
+			cprintf("play head: %d || frequency: %d\n", play_head,sndbuf[play_head].frequency);
     		beep(sndbuf[play_head].frequency, sndbuf[play_head].duration);
+			
 			//free the buffer
-
 			sndbuf[play_head].frequency=0;
     		sndbuf[play_head].duration=0;
 
