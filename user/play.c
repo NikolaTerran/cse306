@@ -13,7 +13,8 @@ struct sndpkt {
 void
 p_atoi(const char *s)
 {
-  struct sndpkt packets[8];
+  //100 notes is sufficient I guess?
+  struct sndpkt packets[100];
   int freq = 0;
   int duration = 0;
   int index = 0;

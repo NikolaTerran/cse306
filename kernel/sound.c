@@ -176,8 +176,8 @@ int play_from_buf() {
     		beep(sndbuf[play_head].frequency, sndbuf[play_head].duration);
 			//free the buffer
 
-			//sndbuf[play_head]->frequency=0;
-    		//sndbuf[play_head]->duration=0;
+			sndbuf[play_head].frequency=0;
+    		sndbuf[play_head].duration=0;
 
     		free_space++;
     		play_head++;
@@ -242,26 +242,6 @@ void play(struct sndpkt *pkts){
 		cprintf("All packets appended!\n");
 		releasesleep(&playlock);
 
-		/* if (!buf_flag) {
-			//SLEEP
-			//block process trying to append packets as the buf is now full
-		}else{
-			cprintf("All packets appended!\n");
-			releasesleep(&playlock);
-		} */
-
-		// if(isplaying){
-		// 	//donothing
-		// 	cprintf("something is playing: %d\n",isplaying);
-		// 	play_from_buf();
-		// }else{
-		// 	isplaying = 1;
-		// 	play_from_buf();
-		// }
-		/* if(sndbuf[0]->frequency == 1000){
-				play_from_buf();
-			} */
-
 		play_from_buf();
 
 		if (free_space >= max_length/2) {
@@ -276,73 +256,6 @@ void play(struct sndpkt *pkts){
 			cprintf("DONE!");
 			break;
 		}
-
-		// if (buf1) {
-		// 	//first half of buf has already been played/buf drained 50%.
-		// 	//for process waiting for space in buf, can now append more packets to this first half
-
-		// 	buf1=0;
-		// 	buf2=1;
-		// 	//SPINLOCK 
-		// 	acquire(&buflock);
-		// 	buf_flag = append_to_buf(0, max_length/2,pkts);
-		// 	pkts += max_length/2;
-		// 	release(&buflock);
-
-		// 	if (!buf_flag) {
-		// 		//SLEEP
-		// 		//block process trying to append packets as the buf is now full
-		// 	}else{
-		// 		cprintf("All packets appended!\n");
-		// 		releasesleep(&playlock);
-		// 	}
-
-		// 	play_flag = play_from_buf(sndbuf, 0, max_length/2);
-		// 	if (!play_flag) {
-		// 		//enough packets have been consumed
-		// 		//WAKEUP process waiting for space in buf
-		// 	}
-		// 	else {
-		// 		//otherwise, all sound pkts are done playing
-		// 		cprintf("DONE!");
-		// 		break;
-		// 	}
-		// 	return;
-		// }
-
-		// if (buf2) {
-		// 	//seond half of buf has already been played/buf drained 50%.
-		// 	//for process waiting for uspace in buf, can now append more packets to this second half
-
-		// 	buf2=0;
-		// 	buf1=1;
-
-		// 	//SPINLOCK 
-		// 	acquire(&buflock);
-		// 	buf_flag = append_to_buf(max_length/2, max_length,pkts);
-		// 	pkts += max_length/2;
-		// 	release(&buflock);
-
-		// 	if (!buf_flag) {
-		// 		//SLEEP
-		// 		//block process trying to append packets as the buf is now full
-		// 	}else{
-		// 		cprintf("All packets appended!\n");
-		// 		releasesleep(&playlock);
-		// 	}
-
-		// 	play_flag = play_from_buf(sndbuf, max_length/2, max_length);
-		// 	if (!play_flag) {
-		// 		//enough packets have been consumed
-		// 		//WAKEUP process waiting for space in buf
-		// 	}
-		// 	else {
-		// 		//otherwise, all sound pkts are done playing
-		// 		cprintf("DONE!");
-		// 		break;
-		// 	}
-
-		// }
 	}
 	
 	return; 
