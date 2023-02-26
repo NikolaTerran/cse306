@@ -13,14 +13,15 @@ struct sndpkt {
 void
 p_atoi(const char *s)
 {
-  //100 notes is sufficient I guess?
-  struct sndpkt packets[100];
+  //256 notes is sufficient I guess?
+  int limit = 256;
+  struct sndpkt packets[limit];
   int freq = 0;
   int duration = 0;
   int index = 0;
 
   //*s != 4 checks for ctrl-D
-  while(*s != 0 && *s != 4 && index < 8){
+  while(*s != 0 && *s != 4 && index < limit){
     //ignores space and tabs
     while(('0' <= *s && *s <= '9') || *s == 32 || *s == 9){
       if(*s != 32 && *s != 9){
@@ -53,18 +54,25 @@ p_atoi(const char *s)
 }
 
 //copied from cat.c 's implementation
-char buf[1024];
+char buf[8096];
 
 void uplay(int fd){
   int n;
-  while((n = read(fd, buf, sizeof(buf))) > 0) {
-    //assume the file is less than 1024 characters,
-    //and its format is correct: freq, duration \n freq, duration...
-    p_atoi(buf);
-    exit();
-  }
+
+  // //change this logic to take in arbitrary long file
+  // while((n = read(fd, buf, sizeof(buf))) > 0) {
+  //   p_atoi(buf);
+  //   exit();
+  // }
+
+  //assume a file is less than 8096 characters,
+  //and its format is correct: freq, duration \n freq, duration...
+  n = read(fd, buf, sizeof(buf));
   if(n < 0){
     printf(1, "play: read error\n");
+    exit();
+  }else{
+    p_atoi(buf);
     exit();
   }
 }
