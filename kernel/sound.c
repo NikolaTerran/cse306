@@ -95,7 +95,7 @@ int pkt_inc = 0;
 int free_space = max_length;
 
 struct sndpkt * append_to_buf(struct sndpkt *pkts) {
-	cprintf("begin free_space : %d\n",free_space);
+	// cprintf("begin free_space : %d\n",free_space);
 
 	while(free_space != 0){
 		if(buf_head == max_length){
@@ -106,16 +106,16 @@ struct sndpkt * append_to_buf(struct sndpkt *pkts) {
 			//make it zero
 			sndbuf[buf_head].frequency = 0;
 			sndbuf[buf_head].duration = 0;
-			cprintf("return from append_to_buf:\n");
-			cprintf("sndbuf[0]: %d\n",sndbuf[0].frequency);
-			cprintf("sndbuf[1]: %d\n",sndbuf[1].frequency);
-			cprintf("sndbuf[2]: %d\n",sndbuf[2].frequency);
-			cprintf("sndbuf[3]: %d\n",sndbuf[3].frequency);
-			cprintf("end free_space : %d\n",free_space);
+			// cprintf("return from append_to_buf:\n");
+			// cprintf("sndbuf[0]: %d\n",sndbuf[0].frequency);
+			// cprintf("sndbuf[1]: %d\n",sndbuf[1].frequency);
+			// cprintf("sndbuf[2]: %d\n",sndbuf[2].frequency);
+			// cprintf("sndbuf[3]: %d\n",sndbuf[3].frequency);
+			// cprintf("end free_space : %d\n",free_space);
             return 0;
         }
 
-		cprintf("buf_head: %d, frequency: %d\n",buf_head,pkts->frequency);
+		// cprintf("buf_head: %d, frequency: %d\n",buf_head,pkts->frequency);
 		sndbuf[buf_head].frequency=pkts->frequency;
 		sndbuf[buf_head].duration=pkts->duration;
 		buf_head++;
@@ -124,14 +124,12 @@ struct sndpkt * append_to_buf(struct sndpkt *pkts) {
 		pkt_inc++;
 	}
     //at this point, buffer is full but there are more pkts to be played
-	cprintf("return from append_to_buf:\n");
-	cprintf("sndbuf[0]: %d\n",sndbuf[0].frequency);
-	cprintf("sndbuf[1]: %d\n",sndbuf[1].frequency);
-	cprintf("sndbuf[2]: %d\n",sndbuf[2].frequency);
-	cprintf("sndbuf[3]: %d\n",sndbuf[3].frequency);
-	cprintf("end free_space : %d\n",free_space);
-	//add this condition to release sleeplock early
-	if (pkts->duration == 0 && pkts->frequency == 0) return 0;
+	// cprintf("return from append_to_buf:\n");
+	// cprintf("sndbuf[0]: %d\n",sndbuf[0].frequency);
+	// cprintf("sndbuf[1]: %d\n",sndbuf[1].frequency);
+	// cprintf("sndbuf[2]: %d\n",sndbuf[2].frequency);
+	// cprintf("sndbuf[3]: %d\n",sndbuf[3].frequency);
+	// cprintf("end free_space : %d\n",free_space);
     return pkts;
 }
 
@@ -156,11 +154,11 @@ int play_from_buf() {
 
     	if (curr_pkt_freq == 0 && curr_pkt_dur == 0){
 			isplaying = 0;
-			cprintf("return from play_from_buf\n");
+			// cprintf("return from play_from_buf\n");
 			return 1;
 		}
 		else if (curr_pkt_dur >= 10) {
-			cprintf("play head: %d || frequency: %d\n, dur: %d\n", play_head,curr_pkt_freq, curr_pkt_dur);
+			// cprintf("play head: %d || frequency: %d\n, dur: %d\n", play_head,curr_pkt_freq, curr_pkt_dur);
     		beep(curr_pkt_freq, curr_pkt_dur);
 			
 			//free the buffer
@@ -168,7 +166,7 @@ int play_from_buf() {
     		sndbuf[play_head].duration=0;
 
     		free_space++;
-			cprintf("free_space after play: %d\n",free_space);
+			// cprintf("free_space after play: %d\n",free_space);
     		play_head++;
     		curr_pkt_freq = sndbuf[play_head].frequency;
     		curr_pkt_dur = sndbuf[play_head].duration;
@@ -176,7 +174,7 @@ int play_from_buf() {
     		if (free_space >= max_length/2) {
 				//enough packets have been consumed
 				//WAKEUP process waiting for space in buf
-				cprintf("Waking up proc\n");
+				// cprintf("Waking up proc\n");
 				wakeup(&free_space);
 				
 			}
@@ -190,7 +188,7 @@ int play_from_buf() {
     			break;
     		}
 
-    		cprintf("Playing pkt freq: %d, dur: %d\n", curr_pkt_freq, 10);
+    		// cprintf("Playing pkt freq: %d, dur: %d\n", curr_pkt_freq, 10);
     		beep(curr_pkt_freq,10);
     		//get the next pkt
     		count_ms += curr_pkt_dur;
@@ -206,7 +204,7 @@ int play_from_buf() {
     				//lands exactly at beginning of next packet
 
     				//free the current pkt at index k
-    				cprintf("Discarding pkt freq: %d, dur: %d\n", sndbuf[k].frequency, sndbuf[k].duration);
+    				// cprintf("Discarding pkt freq: %d, dur: %d\n", sndbuf[k].frequency, sndbuf[k].duration);
     		 		sndbuf[k].frequency=0;
     				sndbuf[k].duration=0;
     				free_space++;
@@ -223,7 +221,7 @@ int play_from_buf() {
     		 		curr_pkt_dur = count_ms-10;
     		 		break;
     		 	}
-    		 	cprintf("Discarding pkt freq: %d, dur: %d\n", sndbuf[k].frequency, sndbuf[k].duration);
+    		 	// cprintf("Discarding pkt freq: %d, dur: %d\n", sndbuf[k].frequency, sndbuf[k].duration);
     		 	//free the current pkt at index k
     		 	sndbuf[k].frequency=0;
     			sndbuf[k].duration=0;
@@ -232,7 +230,7 @@ int play_from_buf() {
     		 	if (free_space >= max_length/2) {
 					//enough packets have been consumed
 					//WAKEUP process waiting for space in buf
-					cprintf("Waking up proc\n");
+					// cprintf("Waking up proc\n");
 					wakeup(&free_space);
 				}
     		}
@@ -249,9 +247,9 @@ void play(struct sndpkt *pkts){
 	while (1) {
 		//SPINLOCK 
 		acquire(&buflock);
-		cprintf("called playing\n");
+		// cprintf("called playing\n");
 		if (free_space == 0) { //buffer currently full
-			cprintf("Buffer full, sleeping on chan\n");
+			// cprintf("Buffer full, sleeping on chan\n");
 			sleep(&free_space, &buflock);
 		}
 		pkts = append_to_buf(pkts);
@@ -259,7 +257,7 @@ void play(struct sndpkt *pkts){
 		release(&buflock);
 
 		if(!pkts){
-			cprintf("All packets appended!\n");
+			// cprintf("All packets appended!\n");
 			releasesleep(&playlock);
 		}
 
