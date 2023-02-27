@@ -186,12 +186,31 @@ int play_from_buf() {
     		//get the next proper packet
     		int curr_pkt_freq1 = curr_pkt_freq;
 
-    		while (count_ms<10) {
+    		while (1) {
+    			if(play_head == max_length){
+						play_head = 0;
+					}
+
     			if (sndbuf[play_head].frequency==0 && sndbuf[play_head].duration==0) {
     				isplaying=0;
     				return 1;
     			}
     			count_ms += sndbuf[play_head].duration;
+    			if (count_ms ==10) {
+    				sndbuf[play_head].frequency=0;
+    				sndbuf[play_head].duration=0;
+    				free_space++;
+    				play_head++;
+    				curr_pkt_freq = sndbuf[play_head].frequency;
+    				curr_pkt_dur = sndbuf[play_head].duration;
+    				break;
+    			}
+    			if (count_ms>10) {
+    				curr_pkt_freq = sndbuf[play_head].frequency;
+    				curr_pkt_dur = count_ms-10;
+    				break;
+    			}
+    			
     			cprintf("Discarding pkt %d, %d", sndbuf[play_head].frequency, sndbuf[play_head].duration);
     			sndbuf[play_head].frequency=0;
     			sndbuf[play_head].duration=0;
@@ -206,16 +225,7 @@ int play_from_buf() {
 					}
     		}
 
-    		if (count_ms==10) {
-    			curr_pkt_freq = sndbuf[play_head].frequency;
-    			curr_pkt_dur = sndbuf[play_head].duration;
-    		}
-
-    		if (count_ms>10) {
-    			curr_pkt_freq = sndbuf[play_head].frequency;
-    			curr_pkt_dur = count_ms-10;
-    		}
-    		cprintf("Playing pkt %d", curr_pkt_freq1);
+    		cprintf("Playing pkt freq %d, dur %d", curr_pkt_freq1, 10);
     		beep(curr_pkt_freq1, 10);
 
     	}
