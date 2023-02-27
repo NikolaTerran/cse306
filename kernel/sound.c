@@ -143,7 +143,7 @@ int isplaying = 0;
 int play_from_buf() {
 
 	int curr_pkt_freq = sndbuf[play_head].frequency;
-    int curr_pkt_dur = sndbuf[play_head].duration;
+  int curr_pkt_dur = sndbuf[play_head].duration;
 
     while (1) {
     	// int count_ms = 0;
@@ -152,7 +152,7 @@ int play_from_buf() {
 			play_head = 0;
 		}
 
-    	if (curr_pkt_freq == 0 && curr_pkt_dur == 0){
+    if (curr_pkt_freq == 0 && curr_pkt_dur == 0){
 			isplaying = 0;
 			// cprintf("return from play_from_buf\n");
 			return 1;
@@ -163,7 +163,7 @@ int play_from_buf() {
 			
 			//free the buffer
 			sndbuf[play_head].frequency=0;
-    		sndbuf[play_head].duration=0;
+    	sndbuf[play_head].duration=0;
 
     		free_space++;
 			// cprintf("free_space after play: %d\n",free_space);
@@ -172,68 +172,51 @@ int play_from_buf() {
     		curr_pkt_dur = sndbuf[play_head].duration;
 
     		if (free_space >= max_length/2) {
-				//enough packets have been consumed
-				//WAKEUP process waiting for space in buf
-				// cprintf("Waking up proc\n");
-				wakeup(&free_space);
-				
-			}
+					//enough packets have been consumed
+					//WAKEUP process waiting for space in buf
+					// cprintf("Waking up proc\n");
+					wakeup(&free_space);
+				}
     	}
 
     	else{
 			//duration less than 10
     		int count_ms=0;
 
-    		if (sndbuf[play_head+1].frequency==0 && sndbuf[play_head+1].duration==0){
-    			break;
+    		//get the next proper packet
+    		int curr_pkt_freq1 = curr_pkt_freq;
+
+    		while (count_ms<10) {
+    			if (sndbuf[play_head].frequency==0 && sndbuf[play_head].duration==0) {
+    				isplaying=0;
+    				return 1;
+    			}
+    			count_ms += sndbuf[play_head].duration;
+    			cprintf("Discarding pkt %d, %d", sndbuf[play_head].frequency, sndbuf[play_head].duration);
+    			sndbuf[play_head].frequency=0;
+    			sndbuf[play_head].duration=0;
+    			free_space++;
+    			play_head++;
+
+    			if (free_space >= max_length/2) {
+						//enough packets have been consumed
+						//WAKEUP process waiting for space in buf
+						// cprintf("Waking up proc\n");
+						wakeup(&free_space);
+					}
     		}
 
-    		// cprintf("Playing pkt freq: %d, dur: %d\n", curr_pkt_freq, 10);
-    		beep(curr_pkt_freq,10);
-    		//get the next pkt
-    		count_ms += curr_pkt_dur;
-    		for (int k = play_head+1; k < max_length; k++) {
-
-    			if (sndbuf[k].frequency==0 && sndbuf[k].duration==0){
-    				break;
-    			}
-
-    			count_ms += sndbuf[k].duration;
-
-    			if (count_ms == 10) {
-    				//lands exactly at beginning of next packet
-
-    				//free the current pkt at index k
-    				// cprintf("Discarding pkt freq: %d, dur: %d\n", sndbuf[k].frequency, sndbuf[k].duration);
-    		 		sndbuf[k].frequency=0;
-    				sndbuf[k].duration=0;
-    				free_space++;
-
-    		 		play_head=k+1;
-    		 		curr_pkt_freq = sndbuf[play_head].frequency;
-    				curr_pkt_dur = sndbuf[play_head].duration;
-    		 		break;
-    			}
-    			if (count_ms > 10) {
-    		 		//lands in the middle of a packet
-    		 		play_head=k;
-    		 		curr_pkt_freq = sndbuf[play_head].frequency;
-    		 		curr_pkt_dur = count_ms-10;
-    		 		break;
-    		 	}
-    		 	// cprintf("Discarding pkt freq: %d, dur: %d\n", sndbuf[k].frequency, sndbuf[k].duration);
-    		 	//free the current pkt at index k
-    		 	sndbuf[k].frequency=0;
-    			sndbuf[k].duration=0;
-    		 	free_space++;
-
-    		 	if (free_space >= max_length/2) {
-					//enough packets have been consumed
-					//WAKEUP process waiting for space in buf
-					// cprintf("Waking up proc\n");
-					wakeup(&free_space);
-				}
+    		if (count_ms==10) {
+    			curr_pkt_freq = sndbuf[play_head].frequency;
+    			curr_pkt_dur = sndbuf[play_head].duration;
     		}
+
+    		if (count_ms>10) {
+    			curr_pkt_freq = sndbuf[play_head].frequency;
+    			curr_pkt_dur = count_ms-10;
+    		}
+    		cprintf("Playing pkt %d", curr_pkt_freq1);
+    		beep(curr_pkt_freq1, 10);
 
     	}
     }
