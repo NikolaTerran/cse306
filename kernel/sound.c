@@ -148,25 +148,25 @@ int play_from_buf() {
     while (1) {
     	// int count_ms = 0;
 
-		if(play_head == max_length){
-			play_head = 0;
-		}
+			if(play_head == max_length){
+				play_head = 0;
+			}
 
    		if (curr_pkt_freq == 0 && curr_pkt_dur == 0){
-			isplaying = 0;
-			// cprintf("return from play_from_buf\n");
-			return 1;
-		}
-		else if (curr_pkt_dur >= 10) {
-			// cprintf("play head: %d || frequency: %d\n, dur: %d\n", play_head,curr_pkt_freq, curr_pkt_dur);
+				isplaying = 0;
+				// cprintf("return from play_from_buf\n");
+				return 1;
+			}
+			else if (curr_pkt_dur >= 10) {
+				// cprintf("play head: %d || frequency: %d\n, dur: %d\n", play_head,curr_pkt_freq, curr_pkt_dur);
     		beep(curr_pkt_freq, curr_pkt_dur);
 			
-			//free the buffer
-			sndbuf[play_head].frequency=0;
+				//free the buffer
+				sndbuf[play_head].frequency=0;
     		sndbuf[play_head].duration=0;
 
     		free_space++;
-			// cprintf("free_space after play: %d\n",free_space);
+				// cprintf("free_space after play: %d\n",free_space);
     		play_head++;
     		curr_pkt_freq = sndbuf[play_head].frequency;
     		curr_pkt_dur = sndbuf[play_head].duration;
@@ -186,17 +186,10 @@ int play_from_buf() {
     		//get the next proper packet
     		int curr_pkt_freq1 = curr_pkt_freq;
 
-<<<<<<< HEAD
     		while (1) {
     			if(play_head == max_length){
 						play_head = 0;
 					}
-=======
-    		while (count_ms<10) {
-				if(play_head == max_length){
-					play_head = 0;
-				}
->>>>>>> collab/main
 
     			if (sndbuf[play_head].frequency==0 && sndbuf[play_head].duration==0) {
     				isplaying=0;
@@ -225,16 +218,14 @@ int play_from_buf() {
     			play_head++;
 
     			if (free_space >= max_length/2) {
-					//enough packets have been consumed
-					//WAKEUP process waiting for space in buf
-					// cprintf("Waking up proc\n");
-					wakeup(&free_space);
-				}
+						//enough packets have been consumed
+						//WAKEUP process waiting for space in buf
+						// cprintf("Waking up proc\n");
+						wakeup(&free_space);
+					}
     		}
-
     		cprintf("Playing pkt freq %d, dur %d", curr_pkt_freq1, 10);
     		beep(curr_pkt_freq1, 10);
-
     	}
     }
     return 0;
