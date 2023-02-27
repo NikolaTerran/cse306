@@ -152,7 +152,7 @@ int play_from_buf() {
 			play_head = 0;
 		}
 
-    if (curr_pkt_freq == 0 && curr_pkt_dur == 0){
+   		if (curr_pkt_freq == 0 && curr_pkt_dur == 0){
 			isplaying = 0;
 			// cprintf("return from play_from_buf\n");
 			return 1;
@@ -163,7 +163,7 @@ int play_from_buf() {
 			
 			//free the buffer
 			sndbuf[play_head].frequency=0;
-    	sndbuf[play_head].duration=0;
+    		sndbuf[play_head].duration=0;
 
     		free_space++;
 			// cprintf("free_space after play: %d\n",free_space);
@@ -187,6 +187,10 @@ int play_from_buf() {
     		int curr_pkt_freq1 = curr_pkt_freq;
 
     		while (count_ms<10) {
+				if(play_head == max_length){
+					play_head = 0;
+				}
+
     			if (sndbuf[play_head].frequency==0 && sndbuf[play_head].duration==0) {
     				isplaying=0;
     				return 1;
@@ -199,11 +203,11 @@ int play_from_buf() {
     			play_head++;
 
     			if (free_space >= max_length/2) {
-						//enough packets have been consumed
-						//WAKEUP process waiting for space in buf
-						// cprintf("Waking up proc\n");
-						wakeup(&free_space);
-					}
+					//enough packets have been consumed
+					//WAKEUP process waiting for space in buf
+					// cprintf("Waking up proc\n");
+					wakeup(&free_space);
+				}
     		}
 
     		if (count_ms==10) {
