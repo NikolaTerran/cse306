@@ -211,7 +211,7 @@ int play_from_buf() {
     				break;
     			}
     			
-    			cprintf("Discarding pkt %d, %d", sndbuf[play_head].frequency, sndbuf[play_head].duration);
+    			// cprintf("Discarding pkt %d, %d", sndbuf[play_head].frequency, sndbuf[play_head].duration);
     			sndbuf[play_head].frequency=0;
     			sndbuf[play_head].duration=0;
     			free_space++;
@@ -224,7 +224,7 @@ int play_from_buf() {
 						wakeup(&free_space);
 					}
     		}
-    		cprintf("Playing pkt freq %d, dur %d", curr_pkt_freq1, 10);
+    		// cprintf("Playing pkt freq %d, dur %d", curr_pkt_freq1, 10);
     		beep(curr_pkt_freq1, 10);
     	}
     }
