@@ -188,6 +188,12 @@ struct {
 
 #define C(x)  ((x)-'@')  // Control-x
 
+
+//consoleintr accumulates input characters in a buffer until a whole line arrives
+//when a newline arrives, wakes up a waiting consoleread
+
+//consputc arranges characters printed on the console screen to be sent to COM1
+
 void
 consoleintr(int (*getc)(void))
 {
@@ -204,20 +210,20 @@ consoleintr(int (*getc)(void))
       while(input.e != input.w &&
             input.buf[(input.e-1) % INPUT_BUF] != '\n'){
         input.e--;
-        consputc(BACKSPACE);
+        //consputc(BACKSPACE);
       }
       break;
     case C('H'): case '\x7f':  // Backspace
       if(input.e != input.w){
         input.e--;
-        consputc(BACKSPACE);
+        //consputc(BACKSPACE);
       }
       break;
     default:
       if(c != 0 && input.e-input.r < INPUT_BUF){
         c = (c == '\r') ? '\n' : c;
         input.buf[input.e++ % INPUT_BUF] = c;
-        consputc(c);
+        //consputc(c);
         if(c == '\n' || c == C('D') || input.e == input.r+INPUT_BUF){
           input.w = input.e;
           wakeup(&input.r);

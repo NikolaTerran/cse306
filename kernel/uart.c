@@ -41,7 +41,7 @@ uartinit(void)
   // enable interrupts.
   inb(COM1+2);
   inb(COM1+0);
-  ioapicenable(IRQ_COM1, 0);
+  ioapicenable(IRQ_COM1, 0); 
 
   // Announce that we're here.
   for(p="xv6...\n"; *p; p++)
@@ -62,7 +62,7 @@ uartputc(int c)
   // empty body and ignoring its argument.
   for(i = 0; i < 1000 && !(inb(COM1+5) & 0x20); i++)
     microdelay(10);
-  outb(COM1+0, c);
+  outb(COM1+0, c); 
 }
 
 static int
@@ -75,8 +75,17 @@ uartgetc(void)
   return inb(COM1+0);
 }
 
+
+//uartintr reads any waiting input characters from the UART hardware
+//and forwards them to console driver (by calling consoleintr)
 void
 uartintr(void)
 {
-  consoleintr(uartgetc);
+  int c = uartgetc();
+  cprintf("unartintr called! %d \n", c);
+  //consoleintr(uartgetc);
+
+  
+
+  
 }
