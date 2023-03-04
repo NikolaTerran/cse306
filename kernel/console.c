@@ -211,12 +211,14 @@ consoleintr(int (*getc)(void))
             input.buf[(input.e-1) % INPUT_BUF] != '\n'){
         input.e--;
         //consputc(BACKSPACE);
+        cgaputc(BACKSPACE); //want it to go through CGA graphics device
       }
       break;
     case C('H'): case '\x7f':  // Backspace
       if(input.e != input.w){
         input.e--;
         //consputc(BACKSPACE);
+        cgaputc(BACKSPACE);
       }
       break;
     default:
@@ -224,6 +226,7 @@ consoleintr(int (*getc)(void))
         c = (c == '\r') ? '\n' : c;
         input.buf[input.e++ % INPUT_BUF] = c;
         //consputc(c);
+        cgaputc(c);
         if(c == '\n' || c == C('D') || input.e == input.r+INPUT_BUF){
           input.w = input.e;
           wakeup(&input.r);
@@ -284,7 +287,8 @@ consolewrite(struct inode *ip, char *buf, int n)
   iunlock(ip);
   acquire(&cons.lock);
   for(i = 0; i < n; i++)
-    consputc(buf[i] & 0xff);
+    //consputc(buf[i] & 0xff);
+    cgaputc(buf[i] & 0xff);
   release(&cons.lock);
   ilock(ip);
 
