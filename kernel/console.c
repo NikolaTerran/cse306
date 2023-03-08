@@ -15,6 +15,7 @@
 #include "proc.h"
 #include "x86.h"
 
+
 static void consputc(int);
 
 static int panicked = 0;
@@ -179,6 +180,8 @@ consputc(int c)
 }
 
 #define INPUT_BUF 128
+
+//buffer for accumulating input chars arriving on console
 struct {
   char buf[INPUT_BUF];
   uint r;  // Read index
@@ -187,7 +190,6 @@ struct {
 } input;
 
 #define C(x)  ((x)-'@')  // Control-x
-
 
 //consoleintr accumulates input characters in a buffer until a whole line arrives
 //when a newline arrives, wakes up a waiting consoleread
