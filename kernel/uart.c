@@ -13,7 +13,7 @@
 #include "x86.h"
 
 
-#define COM1    0x3f8
+#define COM1_PORT    0x3f8
 
 static int uart;    // is there a uart?
 
@@ -48,10 +48,10 @@ uartputc(int c)
   // output overrun, as indicated by log messages in the
   // Bochs log file.  This is with microdelay() having an
   // empty body and ignoring its argument.
-  for(i = 0; i < 1000 && !(inb(COM1+5) & 0x20); i++)
+  for(i = 0; i < 1000 && !(inb(COM1_PORT+5) & 0x20); i++)
     microdelay(10);
 
-  outb(COM1+0, c); 
+  outb(COM1_PORT+0, c); 
 }
 
 static int
@@ -59,9 +59,9 @@ uartgetc(void)
 {
   if(!uart)
     return -1;
-  if(!(inb(COM1+5) & 0x01))
+  if(!(inb(COM1_PORT+5) & 0x01))
     return -1;
-  return inb(COM1+0);
+  return inb(COM1_PORT+0);
 }
 
 int
@@ -124,32 +124,32 @@ uartinit(void)
 
   initlock(&uartlock.lock, "uart (com1)");
 
-  devsw[COM].write = uartwrite;
-  devsw[COM].read = uartread;
+  devsw[COM1].write = uartwrite;
+  devsw[COM1].read = uartread;
   uartlock.locking = 1;
 
   char *p;
 
   // Turn off the FIFO
-  outb(COM1+2, 0);
+  outb(COM1_PORT+2, 0);
 
   // 9600 baud, 8 data bits, 1 stop bit, parity off.
-  outb(COM1+3, 0x80);    // Unlock divisor
-  outb(COM1+0, 115200/9600);
-  outb(COM1+1, 0);
-  outb(COM1+3, 0x03);    // Lock divisor, 8 data bits.
-  outb(COM1+4, 0);
-  outb(COM1+1, 0x01);    // Enable receive interrupts.
+  outb(COM1_PORT+3, 0x80);    // Unlock divisor
+  outb(COM1_PORT+0, 115200/9600);
+  outb(COM1_PORT+1, 0);
+  outb(COM1_PORT+3, 0x03);    // Lock divisor, 8 data bits.
+  outb(COM1_PORT+4, 0);
+  outb(COM1_PORT+1, 0x01);    // Enable receive interrupts.
 
   // If status is 0xFF, no serial port.
-  if(inb(COM1+5) == 0xFF)
+  if(inb(COM1_PORT+5) == 0xFF)
     return;
   uart = 1;
 
   // Acknowledge pre-existing interrupt conditions;
   // enable interrupts.
-  inb(COM1+2);
-  inb(COM1+0);
+  inb(COM1_PORT+2);
+  inb(COM1_PORT+0);
   ioapicenable(IRQ_COM1, 0); 
 
   // Announce that we're here.
