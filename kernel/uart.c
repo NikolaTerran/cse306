@@ -36,6 +36,7 @@ struct {
 
 #define C(x)  ((x)-'@')  // Control-x
 
+static int inbound_port = 0;
 
 void
 uartputc(int c)
@@ -52,37 +53,30 @@ uartputc(int c)
   for(i = 0; i < 1000 && !(inb(COM1_PORT+5) & 0x20); i++)
     microdelay(10);
 
-  outb(COM1_PORT+0, c); 
-  
-  //copy-paste for com2
-  // int i;
-
-  // if(!uart)
-  //   return;
-  for(i = 0; i < 1000 && !(inb(COM2_PORT+5) & 0x20); i++)
-    microdelay(10);
-
-  outb(COM2_PORT+0, c); 
+  outb(inbound_port, c);
 }
 
 static int
 uartgetc(void)
 {
+
+  // cprintf("uartgetc:COM1 %d,COM2 %d\n", inb(COM1_PORT+5) & 0x01, inb(COM2_PORT+5) & 0x01 );
+  
+  //consider to lock it because of inbound_port change
+
   if(!uart)
     return -1;
-  // if(!(inb(COM1_PORT+5) & 0x01))
-  //   return -1;
-  
-  if(inb(COM1_PORT+5) & 0x01)
-    return inb(COM1_PORT+0);
-  //copy-paste for com2
 
-  // if(!uart)
-  //   return -1;
-  // if(!(inb(COM2_PORT+5) & 0x01))
-  //   return -1;
-  if(inb(COM2_PORT+5) & 0x01)
+  if(inb(COM1_PORT+5) & 0x01){
+    inbound_port = COM1_PORT+0;
+    return inb(COM1_PORT+0);
+  }
+    
+  //copy-paste for com2
+  if(inb(COM2_PORT+5) & 0x01){
+    inbound_port = COM2_PORT+0;
     return inb(COM2_PORT+0);
+  }
 
   return -1;
 }
@@ -183,8 +177,8 @@ uartinit(void)
   // copy-paste for COM2
   // initlock(&uartlock.lock, "uart (com1)");
 
-  // devsw[COM2].write = uartwrite;
-  // devsw[COM2].read = uartread;
+  devsw[COM2].write = uartwrite;
+  devsw[COM2].read = uartread;
 
   // uartlock.locking = 1;
 
