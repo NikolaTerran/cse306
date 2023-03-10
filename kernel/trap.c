@@ -73,6 +73,11 @@ trap(struct trapframe *tf)
     uartintr();
     lapiceoi();
     break;
+  case T_IRQ0 + IRQ_COM2:
+    //interrupts from serial port COM2
+    uartintr();
+    lapiceoi();
+    break;
   case T_IRQ0 + 7:
   case T_IRQ0 + IRQ_SPURIOUS:
   case T_IRQ0 + IRQ_SPURIOUS1:

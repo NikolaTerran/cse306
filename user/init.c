@@ -74,7 +74,7 @@ main(void)
       //Then init needs to fork twice, once for the shell to be started on /console 
       //and another time for the shell to be started on /com1. 
       if(open("/com2", O_RDWR) < 0){
-        mknod("/com2", 3, 1);
+        mknod("/com2", 3, 2);
         open("/com2", O_RDWR);
       }
       dup(0);  // stdout
