@@ -40,25 +40,25 @@ struct {
 void
 uartputc(int c)
 {
-  // int i;
-
-  // if(!uart)
-  //   return;
-  // // On my test system, Bochs (running at 1M instr/sec)
-  // // requires between 500 and 1000 iterations to avoid
-  // // output overrun, as indicated by log messages in the
-  // // Bochs log file.  This is with microdelay() having an
-  // // empty body and ignoring its argument.
-  // for(i = 0; i < 1000 && !(inb(COM1_PORT+5) & 0x20); i++)
-  //   microdelay(10);
-
-  // outb(COM1_PORT+0, c); 
-  
-  //copy-paste for com2
   int i;
 
   if(!uart)
     return;
+  // On my test system, Bochs (running at 1M instr/sec)
+  // requires between 500 and 1000 iterations to avoid
+  // output overrun, as indicated by log messages in the
+  // Bochs log file.  This is with microdelay() having an
+  // empty body and ignoring its argument.
+  for(i = 0; i < 1000 && !(inb(COM1_PORT+5) & 0x20); i++)
+    microdelay(10);
+
+  outb(COM1_PORT+0, c); 
+  
+  //copy-paste for com2
+  // int i;
+
+  // if(!uart)
+  //   return;
   for(i = 0; i < 1000 && !(inb(COM2_PORT+5) & 0x20); i++)
     microdelay(10);
 
@@ -68,18 +68,23 @@ uartputc(int c)
 static int
 uartgetc(void)
 {
-  // if(!uart)
-  //   return -1;
-  // if(!(inb(COM1_PORT+5) & 0x01))
-  //   return -1;
-  // return inb(COM1_PORT+0);
-  //copy-paste for com2
-
   if(!uart)
     return -1;
-  if(!(inb(COM2_PORT+5) & 0x01))
-    return -1;
-  return inb(COM2_PORT+0);
+  // if(!(inb(COM1_PORT+5) & 0x01))
+  //   return -1;
+  
+  if(inb(COM1_PORT+5) & 0x01)
+    return inb(COM1_PORT+0);
+  //copy-paste for com2
+
+  // if(!uart)
+  //   return -1;
+  // if(!(inb(COM2_PORT+5) & 0x01))
+  //   return -1;
+  if(inb(COM2_PORT+5) & 0x01)
+    return inb(COM2_PORT+0);
+
+  return -1;
 }
 
 int
@@ -140,50 +145,50 @@ void
 uartinit(void)
 {
 
-  // initlock(&uartlock.lock, "uart (com1)");
-
-  // devsw[COM1].write = uartwrite;
-  // devsw[COM1].read = uartread;
-
-  // uartlock.locking = 1;
-
-  // char *p;
-
-  // // Turn off the FIFO
-  // outb(COM1_PORT+2, 0);
-
-  // // 9600 baud, 8 data bits, 1 stop bit, parity off.
-  // outb(COM1_PORT+3, 0x80);    // Unlock divisor
-  // outb(COM1_PORT+0, 115200/9600);
-  // outb(COM1_PORT+1, 0);
-  // outb(COM1_PORT+3, 0x03);    // Lock divisor, 8 data bits.
-  // outb(COM1_PORT+4, 0);
-  // outb(COM1_PORT+1, 0x01);    // Enable receive interrupts.
-
-  // // If status is 0xFF, no serial port.
-  // if(inb(COM1_PORT+5) == 0xFF)
-  //   return;
-  // uart = 1;
-
-  // // Acknowledge pre-existing interrupt conditions;
-  // // enable interrupts.
-  // inb(COM1_PORT+2);
-  // inb(COM1_PORT+0);
-  // ioapicenable(IRQ_COM1, 0); 
-
-  // // Announce that we're here.
-  // for(p="xv6...\n"; *p; p++)
-  //   uartputc(*p);
-
-  // copy-paste for COM2
   initlock(&uartlock.lock, "uart (com1)");
 
-  devsw[COM2].write = uartwrite;
-  devsw[COM2].read = uartread;
+  devsw[COM1].write = uartwrite;
+  devsw[COM1].read = uartread;
 
   uartlock.locking = 1;
 
   char *p;
+
+  // Turn off the FIFO
+  outb(COM1_PORT+2, 0);
+
+  // 9600 baud, 8 data bits, 1 stop bit, parity off.
+  outb(COM1_PORT+3, 0x80);    // Unlock divisor
+  outb(COM1_PORT+0, 115200/9600);
+  outb(COM1_PORT+1, 0);
+  outb(COM1_PORT+3, 0x03);    // Lock divisor, 8 data bits.
+  outb(COM1_PORT+4, 0);
+  outb(COM1_PORT+1, 0x01);    // Enable receive interrupts.
+
+  // If status is 0xFF, no serial port.
+  if(inb(COM1_PORT+5) == 0xFF)
+    return;
+  uart = 1;
+
+  // Acknowledge pre-existing interrupt conditions;
+  // enable interrupts.
+  inb(COM1_PORT+2);
+  inb(COM1_PORT+0);
+  ioapicenable(IRQ_COM1, 0); 
+
+  // Announce that we're here.
+  for(p="xv6...\n"; *p; p++)
+    uartputc(*p);
+
+  // copy-paste for COM2
+  // initlock(&uartlock.lock, "uart (com1)");
+
+  // devsw[COM2].write = uartwrite;
+  // devsw[COM2].read = uartread;
+
+  // uartlock.locking = 1;
+
+  // char *p;
   // Turn off the FIFO
   outb(COM2_PORT+2, 0);
 
@@ -222,10 +227,7 @@ uartintr(void)
   // uartputc(c);
   // consoleintr(uartgetc);
 
-
   int c, doprocdump = 0;
-
-  // cprintf("unartintr called! %d \n", doprocdump);
 
   acquire(&uartlock.lock);
   while((c = uartgetc()) >= 0){
