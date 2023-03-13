@@ -53,7 +53,14 @@ uartputc(int c)
   for(i = 0; i < 1000 && !(inb(COM1_PORT+5) & 0x20); i++)
     microdelay(10);
 
-  outb(inbound_port, c);
+  if(c == BACKSPACE){
+    uartputc('\b'); uartputc(' '); uartputc('\b');
+  }else{
+    outb(inbound_port, c);
+  }
+  
+
+  
 }
 
 static int
