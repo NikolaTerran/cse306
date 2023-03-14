@@ -167,7 +167,7 @@ extern struct spinlock tickslock;
 
 // uart.c
 void            uartinit(void);
-void            uartintr(void);
+void            uartintr(int);
 void            uartputc(int);
 
 // vm.c
