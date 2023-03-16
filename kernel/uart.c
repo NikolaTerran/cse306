@@ -58,9 +58,6 @@ uartputc(int c)
   }else{
     outb(inbound_port, c);
   }
-  
-
-  
 }
 
 static int
@@ -117,8 +114,9 @@ uartread(struct inode *ip, char *dst, int n)
     }
     *dst++ = c;
     --n;
-    if(c == '\n')
+    if(c == '\n'){
       break;
+    }
   }
   release(&uartlock.lock);
   ilock(ip);

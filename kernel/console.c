@@ -272,8 +272,9 @@ consoleread(struct inode *ip, char *dst, int n)
     }
     *dst++ = c;
     --n;
-    if(c == '\n')
+    if(c == '\n'){
       break;
+    }
   }
   release(&cons.lock);
   ilock(ip);
