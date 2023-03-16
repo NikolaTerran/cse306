@@ -33,6 +33,7 @@ static struct {
 #define BACKSPACE 0x100
 #define INPUT_BUF 128
 
+static int com1_size = 0;
 //buffer for accumulating input chars arriving on COM1
 struct {
   char buf[INPUT_BUF];
@@ -41,7 +42,7 @@ struct {
   uint e;  // Edit index
 } uart_input1;
 
-
+static int com2_size = 0;
 //buffer for accumulating input chars arriving on COM2
 struct {
   char buf[INPUT_BUF];
@@ -70,9 +71,38 @@ uartputc(int c)
     microdelay(10);
 
   if(c == BACKSPACE){
-    uartputc('\b'); uartputc(' '); uartputc('\b');
+    outb(inbound_port, '\b');
+    outb(inbound_port, ' ');
+    outb(inbound_port, '\b');
   }else{
-    outb(inbound_port, c);
+    if(inbound_port == COM1_PORT){
+      if(c == '\n'){
+        outb(inbound_port, c);
+        while(com1_size){
+          outb(inbound_port, '\b');
+          outb(inbound_port, ' ');
+          outb(inbound_port, '\b');
+          com1_size -= 1;
+        }
+      }else{
+        com1_size += 1;
+      }
+    }else if(inbound_port == COM2_PORT){
+      if(c == '\n'){
+        outb(inbound_port, c);
+        while(com2_size){
+          outb(inbound_port, '\b');
+          outb(inbound_port, ' ');
+          outb(inbound_port, '\b');
+          com2_size -= 1;
+        }
+      }else{
+        com2_size += 1;
+      }
+    }
+    if(c != '\n'){
+      outb(inbound_port, c);
+    }
   }
 }
 
