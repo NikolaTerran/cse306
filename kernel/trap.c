@@ -70,12 +70,12 @@ trap(struct trapframe *tf)
     break;
   case T_IRQ0 + IRQ_COM1:
     //interrupts from serial port COM1
-    uartintr();
+    uartintr(1);
     lapiceoi();
     break;
   case T_IRQ0 + IRQ_COM2:
     //interrupts from serial port COM2
-    uartintr();
+    uartintr(2);
     lapiceoi();
     break;
   case T_IRQ0 + 7:
