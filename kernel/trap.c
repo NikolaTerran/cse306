@@ -85,6 +85,27 @@ trap(struct trapframe *tf)
             cpuid(), tf->trapno, tf->cs, tf->eip);
     lapiceoi();
     break;
+  case T_PGFLT:
+    cprintf("overflow handler in trap.c, pgdir: %d, size: %d, kstack: %p\n",*myproc()->pgdir,myproc()->sz,myproc()->kstack);
+    //assume myproc is not 0
+    //if less than 4 megabytes
+    if(myproc()->sz < 4194304){
+      //allocate more
+      uint oldsz = KERNBASE-1 - myproc()->sz - PGSIZE;
+      if((allocuvm(myproc()->pgdir, oldsz, oldsz + PGSIZE)) == 0){
+        //something went wrong
+        cprintf("something went wrong when increment user memory\n");
+        myproc()->killed = 1;
+      }else{
+        myproc()->sz += PGSIZE;
+      }
+      // cprintf("alloc status: %d\n",status);
+      return;
+    }else{
+      //kill the process
+      myproc()->killed = 1;
+    }
+    break;
 
   //PAGEBREAK: 13
   default:
