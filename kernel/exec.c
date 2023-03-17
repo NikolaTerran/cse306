@@ -65,8 +65,10 @@ exec(char *path, char **argv)
   sz = PGROUNDUP(sz);
   sp = KERNBASE-1; //locate stack starting at top of user address space
 
-  if((sz = allocuvm(pgdir, sp - PGSIZE, sp)) == 0)
+  if((allocuvm(pgdir, sp - PGSIZE, sp)) == 0)
     goto bad;
+
+  curproc->stack_pages = 1;
   
   //clearpteu(pgdir, (char*)(sz - 2*PGSIZE)); //clear PTE for first page (guard page)
   //sp = sz;

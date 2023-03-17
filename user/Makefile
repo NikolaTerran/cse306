@@ -24,6 +24,7 @@ UPROGS=\
 	_zombie\
 	_beep\
 	_play\
+	_overflow\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)
