@@ -101,7 +101,11 @@ uartputc(int c)
       }
     }
     if(c != '\n'){
-      outb(inbound_port, c);
+      if(c == 27){
+        outb(inbound_port, 218);
+      }else{
+        outb(inbound_port,c);
+      } 
     }
   }
 }
