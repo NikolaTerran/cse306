@@ -87,9 +87,35 @@ trap(struct trapframe *tf)
     break;
   case T_PGFLT:
     cprintf("overflow handler in trap.c, pgdir: %d, size: %d, kstack: %p\n",*myproc()->pgdir,myproc()->sz,myproc()->kstack);
+
+
     //assume myproc is not 0
     //if less than 4 megabytes
-    if(myproc()->sz < 4194304){
+    if ((myproc()->stack_pages * PGSIZE) < 4194304) {
+      uint vaddr = rcr2();
+      uint newsz = KERNBASE-1 - (myproc()->stack_pages * PGSIZE);
+      uint oldsz = newsz - PGSIZE;
+
+      if (vaddr > oldsz-PGSIZE && vaddr < newsz) {
+        if (allocuvm(myproc()->pgdir, oldsz, newsz) == 0) {
+          //something went wrong
+          cprintf("something went wrong when increment user memory\n");
+          myproc()->killed = 1;
+          break;
+        }
+        myproc()->stack_pages++;
+        cprintf("Number of pages: %d\n", myproc()->stack_pages);
+      }
+    }
+    else {
+      //4MB exceeded, kill the process
+      cprintf("4MB exceeded\n");
+      myproc()->killed = 1;
+    }
+
+    //assume myproc is not 0
+    //if less than 4 megabytes
+    /* if(myproc()->sz < 4194304){
       //allocate more
       uint oldsz = KERNBASE-1 - myproc()->sz - PGSIZE;
       if((allocuvm(myproc()->pgdir, oldsz, oldsz + PGSIZE)) == 0){
@@ -104,7 +130,10 @@ trap(struct trapframe *tf)
     }else{
       //kill the process
       myproc()->killed = 1;
-    }
+    } */
+
+
+
     break;
 
   //PAGEBREAK: 13
