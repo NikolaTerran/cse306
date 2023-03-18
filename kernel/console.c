@@ -17,6 +17,7 @@
 
 
 static void consputc(int);
+static void cgaputc(int);
 
 static int panicked = 0;
 
