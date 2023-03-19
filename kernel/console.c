@@ -173,10 +173,10 @@ consputc(int c)
       ;
   }
 
-  if(c == BACKSPACE){
+  /* if(c == BACKSPACE){
     uartputc('\b'); uartputc(' '); uartputc('\b');
   } else
-    uartputc(c);
+    uartputc(c); */
   cgaputc(c);
 }
 
@@ -213,23 +213,20 @@ consoleintr(int (*getc)(void))
       while(input.e != input.w &&
             input.buf[(input.e-1) % INPUT_BUF] != '\n'){
         input.e--;
-        //consputc(BACKSPACE);
-        cgaputc(BACKSPACE); //want it to go through CGA graphics device
+        consputc(BACKSPACE);
       }
       break;
     case C('H'): case '\x7f':  // Backspace
       if(input.e != input.w){
         input.e--;
-        //consputc(BACKSPACE);
-        cgaputc(BACKSPACE);
+        consputc(BACKSPACE);
       }
       break;
     default:
       if(c != 0 && input.e-input.r < INPUT_BUF){
         c = (c == '\r') ? '\n' : c;
         input.buf[input.e++ % INPUT_BUF] = c;
-        //consputc(c);
-        cgaputc(c);
+        consputc(c);
         if(c == '\n' || c == C('D') || input.e == input.r+INPUT_BUF){
           input.w = input.e;
           wakeup(&input.r);
