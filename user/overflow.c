@@ -7,7 +7,7 @@ Running the following (infinitely recursive) test program will demonstrate
 what happens when a stack overflow occurs:
 */
 void rec(int i) {
-  printf(1, "%d(0x%x)\n", i, &i);
+  printf(1, "%d(0x%x)d\n", i, &i);
   rec(i+1);
 }
 
