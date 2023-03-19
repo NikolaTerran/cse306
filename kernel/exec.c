@@ -70,8 +70,16 @@ exec(char *path, char **argv)
 
   curproc->stack_pages = 1;
   
-  //clearpteu(pgdir, (char*)(sz - 2*PGSIZE)); //clear PTE for first page (guard page)
-  //sp = sz;
+  
+  //Set up 4MB guard page
+  uint sp_limit = 0x7FC00000; //4MB below KERNBASE
+
+  if ((allocuvm(pgdir, sp_limit-(1024*PGSIZE), sp_limit)) == 0)
+    goto bad;
+
+  for (uint i = sp_limit-(1024*PGSIZE); i < sp_limit; i += PGSIZE) {
+    clearpteu(pgdir, (char *)i);
+  }
 
   // Push argument strings, prepare rest of stack in ustack.
   for(argc = 0; argv[argc]; argc++) {
