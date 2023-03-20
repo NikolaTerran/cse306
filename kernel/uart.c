@@ -30,6 +30,12 @@ static struct {
   int locking;
 } uartlock2;
 
+//lock for inbound_port
+static struct {
+  struct spinlock lock;
+  int locking;
+} portlock;
+
 #define BACKSPACE 0x100
 #define INPUT_BUF 128
 
@@ -122,13 +128,17 @@ uartgetc(void)
     return -1;
 
   if(inb(COM1_PORT+5) & 0x01){
+    acquire(&portlock.lock);
     inbound_port = COM1_PORT+0;
+    release(&portlock.lock);
     return inb(COM1_PORT+0);
   }
     
   //copy-paste for com2
   if(inb(COM2_PORT+5) & 0x01){
+    acquire(&portlock.lock);
     inbound_port = COM2_PORT+0;
+    release(&portlock.lock);
     return inb(COM2_PORT+0);
   }
 
@@ -233,7 +243,7 @@ uartwrite(struct inode *ip, char *buf, int n)
 void
 uartinit(void)
 {
-
+  initlock(&portlock.lock, "inbound_port");
   initlock(&uartlock1.lock, "uart (com1)");
 
   devsw[COM1].write = uartwrite;

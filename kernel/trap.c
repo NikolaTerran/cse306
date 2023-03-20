@@ -111,13 +111,13 @@ trap(struct trapframe *tf)
 
       if (allocuvm(myproc()->pgdir, oldsz, newsz) == 0) {
         //something went wrong
-        cprintf("something went wrong when increment user memory\n");
+        // cprintf("something went wrong when incrementing user memory\n");
         freevm(myproc()->pgdir);
         myproc()->killed = 1;
         break;
       }
       myproc()->stack_pages++;
-      cprintf("Number of pages: %d\n", myproc()->stack_pages);
+      // cprintf("Number of pages: %d\n", myproc()->stack_pages);
     }
     else {
       //4MB exceeded, kill the process
