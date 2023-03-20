@@ -1,0 +1,34 @@
+# CSE306 HW2
+
+# Overview of the assignment
+The two main goals of this assignment were to:
+
+1) Make xv6 into a three-terminal system, supporting independent shell sessions running simultaneously on the console, on COM1, and on COM2.
+
+2) Relocate and move the user stack of a process to the high end of the process' address space, i.e. allow it to begin just below the start of the kernel area at KERNBASE, and to allow this stack to be automatically extensible when accessing addresses below the pages currently allocated for the stack.
+
+# How to compile and run
+In order to allow xv6 to support the three independent shell sessions (console, COM1, COM2), telnet must be used. By using telnet, you will be remotely logging in over the network to the xv6 system.
+
+First, compile xv6 by typing in "make" in the top-level xv6 directory. Then, type "make qemu-telnet" which will boot up the console. QEMU will then listen for connections on TCP ports 4444 (COM1) and 4445 (COM2). To connect COM1 and COM2 to the console, in another terminal, making sure you are in the top-level xv6 directory, type in "telnet localhost 4444" and "telnet localhost 4445" respectively to connect.
+
+To disconnect COM1 and COM2 from the console, type CTRL-] followed by quit in both terminals.
+
+We used the infinitely recursive test program provided in the homework document to test our code. The code is located in a source file named overflow.c in the user directory. Once xv6 is started, in the console, COM1, or COM2 shell, you are able to run this test program by typing in the command "overflow".
+
+# Assumptions and design decisions
+We followed the instructions as stated in the homework document for our implementations.
+
+First off, for Exercise 1, buffers were used to accumulate the characters arriving on the console, COM1, and COM2. However, we made sure to use separate buffers for each to avoid overwriting and interleaving of characters arriving from the different terminals. For the console, the buffer named input was used. For COM1, the buffer named uart_input1 was used. And for COM2, the buffer named uart_input2 was used. Each buffer had its own lock, to prevent race conditions.
+
+Once we were able to get COM1 working, the implementation for getting COM2 to work was almost exactly the same, with the exception of the ip->minor and IRQ numbers for example. This provided us with a lot of reusable code, since the console, COM1, and COM2 were basically all performing the same functions.
+
+For Exercise 2, we had to relocate the user stack to the high end of the process' address space, rather than have it at the low end where the other populated parts of the address space were, such as the text and data sections. To do this, we first had to change the sp variable to now be intialized to KERNBASE-1, instead of sp = sz like before. In addition, the parameters uint oldsz and uint newsz had to be changed, to accommodate the stack being moved to the high end of the address space. Finally, there were seveal other parts of the system that assumed a contiguous virtual address space that had to be changed. This included functions in syscall.c: fetchint, fetchstr, and argptr. We also had to slightly modify the implementation of fork() to accommodate for this.
+
+In addition, we also included a guard page right beneath the max stack limit so that the new heap limit does not extend into the 4MB stack area. This was done in exec.c, right after allocating the initial one page of the stack. We decided to have the guard page be 4MB, so the start address (uint oldsz) of this guard page was KERNBASE-4MB-4MB, and the end address (uint newsz) of this guard page was KERNBASE-4MB.
+
+We also note that 4MB = 2^22 = 4194304 = 1024*PGSIZE (where PGSIZE = 4096).
+
+
+
+
