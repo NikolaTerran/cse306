@@ -34,6 +34,10 @@ idtinit(void)
 }
 
 //PAGEBREAK: 41
+int t = 0;
+extern void incrementstats(void);
+extern void printstats(int);
+
 void
 trap(struct trapframe *tf)
 {
@@ -48,6 +52,16 @@ trap(struct trapframe *tf)
   }
   switch(tf->trapno){
   case T_IRQ0 + IRQ_TIMER:
+
+    incrementstats();
+
+    //produces printout on console every 1000 ticks (~10 sec)
+    t++;
+    if (t % 1000 == 0) {
+      //cprintf("timer interrupt!\n");
+      printstats(t);
+    } 
+
     if(cpuid() == 0){
       acquire(&tickslock);
       ticks++;
@@ -91,14 +105,14 @@ trap(struct trapframe *tf)
     uint vaddr = rcr2();
     if (vaddr < 0x7FC00000) {
       //more than 4MB below KERNBASE (0x7FC00000 = KERNBASE-4MB)
-      freevm(myproc()->pgdir);
+      //freevm(myproc()->pgdir);
       myproc()->killed = 1;
       break;
     }
 
     if (vaddr >= KERNBASE) {
       //above "low part" of process address space
-      freevm(myproc()->pgdir);
+      //freevm(myproc()->pgdir);
       myproc()->killed = 1;
       break;
     }
@@ -112,7 +126,7 @@ trap(struct trapframe *tf)
       if (allocuvm(myproc()->pgdir, oldsz, newsz) == 0) {
         //something went wrong
         // cprintf("something went wrong when incrementing user memory\n");
-        freevm(myproc()->pgdir);
+        //freevm(myproc()->pgdir);
         myproc()->killed = 1;
         break;
       }
@@ -122,7 +136,7 @@ trap(struct trapframe *tf)
     else {
       //4MB exceeded, kill the process
       cprintf("4MB exceeded\n");
-      freevm(myproc()->pgdir);
+      //freevm(myproc()->pgdir);
       myproc()->killed = 1;
     }
 
@@ -173,8 +187,9 @@ trap(struct trapframe *tf)
     exit();
 
   // Invoke the scheduler on clock tick.
-  if(tf->trapno == T_IRQ0+IRQ_TIMER)
+  if(tf->trapno == T_IRQ0+IRQ_TIMER) {
     reschedule();
+  }
 
   // Check if the process has been killed since we yielded
   if(myproc() && myproc()->killed && (tf->cs&3) == DPL_USER)

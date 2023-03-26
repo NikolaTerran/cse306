@@ -50,6 +50,10 @@ struct proc {
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
   int stack_pages;             // ADDED: size of stack
+
+  int running;                 // ADDED: proc is currently running
+  int runnable;                // ADDED: proc is waiting for CPU
+  int sleeping;                // ADDED: proc is blocked
 };
 
 // Process memory is laid out contiguously, low addresses first:

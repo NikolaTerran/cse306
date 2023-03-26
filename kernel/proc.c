@@ -596,3 +596,61 @@ procdump(void)
     cprintf("\n");
   }
 }
+
+
+// Increments the appropriate field on each timer interrupt (running, runnable, sleeping), 
+// according to the state the process is in at the time of that interrupt
+// Called in trap.c, for each tick
+void 
+incrementstats(void) {
+  struct proc *p;
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+    if (p->state == UNUSED)
+      continue;
+
+    if (p->state == RUNNING)
+      p->running++;
+
+    if (p->state == RUNNABLE)
+      p->runnable++;
+
+    if (p->state == SLEEPING)
+      p->sleeping++;
+  }
+  return;
+}
+
+
+// Function that prints out stats for each process (how long process
+// is running, waiting for CPU, or sleeping)
+// Called in trap.c, for every 1000 ticks
+
+// Some parts copied directly from procdump()
+void 
+printstats(int uptime) {
+  static char *states[] = {
+  [UNUSED]    "unused",
+  [EMBRYO]    "embryo",
+  [SLEEPING]  "sleep ",
+  [RUNNABLE]  "runble",
+  [RUNNING]   "run   ",
+  [ZOMBIE]    "zombie"
+  };
+  struct proc *p;
+  char *state;
+
+  cprintf("cpus: 1, uptime: %d \n", uptime);
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+    if (p->state == UNUSED)
+      continue;
+    if(p->state >= 0 && p->state < NELEM(states) && states[p->state])
+      state = states[p->state];
+    else
+      state = "???";
+
+    cprintf("%d %s %s run: %d wait: %d sleep: %d \n", p->pid, state, p->name, p->running, p->runnable, p->sleeping);
+  
+  }
+  cprintf("\n");
+  return;
+}
