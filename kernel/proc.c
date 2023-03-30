@@ -629,6 +629,7 @@ incrementstats(void) {
 static double avg = 0;
 #define CONSTANT 0.96
 #define CPU_CONS 0.93
+#define WAIT_CONS 0.93
 
 void calc_avg(){
   struct proc *p;
@@ -638,9 +639,12 @@ void calc_avg(){
     if(p->state == 3 || p->state == 4){
       sample += 1.0;
     }
-    double diff = (p->running - p->last_run)/100.0;
-    p->util_avg = CPU_CONS * p->util_avg + (1-CPU_CONS) * diff;
+    double diff1 = (p->running - p->last_run)/100.0;
+    double diff2 = (p->runnable - p->last_wait)/100.0;
+    p->util_avg = CPU_CONS * p->util_avg + (1-CPU_CONS) * diff1;
+    p->wait_avg = WAIT_CONS * p->wait_avg + (1-WAIT_CONS) * diff2;
     p->last_run = p->running;
+    p->last_wait = p->runnable;
   }
   avg = CONSTANT * avg + (1-CONSTANT) * sample;
 }
@@ -669,7 +673,7 @@ printstats(int uptime) {
     else
       state = "???";
     
-    cprintf("%d %s %s run: %d wait: %d sleep: %d cpu%: %d\n", p->pid, state, p->name, p->running, p->runnable, p->sleeping, (int)(p->util_avg * 100.0));
+    cprintf("%d %s %s run: %d wait: %d sleep: %d cpu%: %d wait%: %d\n", p->pid, state, p->name, p->running, p->runnable, p->sleeping, (int)(p->util_avg * 100.0), (int)(p->wait_avg * 100.0));
   }
   cprintf("\n");
   return;

@@ -56,6 +56,8 @@ struct proc {
   int sleeping;                // ADDED: proc is blocked
   int last_run;                // ADDED: cpu utilization difference
   double util_avg;          // ADDED: cpu utilization average
+  int last_wait;               // ADDED: ticks of waiting difference
+  double wait_avg;             // ADDED: waiting for CPU average
 };
 
 // Process memory is laid out contiguously, low addresses first:
