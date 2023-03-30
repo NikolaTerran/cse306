@@ -637,6 +637,9 @@ void calc_avg(){
     if(p->state == 3 || p->state == 4){
       sample += 1.0;
     }
+    double diff = (p->running - p->last_run)/100.0;
+    p->util_avg = CONSTANT * p->util_avg + (1-CONSTANT) * diff;
+    p->last_run = p->running;
   }
   avg = CONSTANT * avg + (1-CONSTANT) * sample;
 }
@@ -665,7 +668,7 @@ printstats(int uptime) {
     else
       state = "???";
     
-    cprintf("%d %s %s run: %d wait: %d sleep: %d \n", p->pid, state, p->name, p->running, p->runnable, p->sleeping);
+    cprintf("%d %s %s run: %d wait: %d sleep: %d cpu%: %d\n", p->pid, state, p->name, p->running, p->runnable, p->sleeping, (int)(p->util_avg * 100.0));
   }
   cprintf("\n");
   return;

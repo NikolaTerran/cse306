@@ -54,6 +54,8 @@ struct proc {
   int running;                 // ADDED: proc is currently running
   int runnable;                // ADDED: proc is waiting for CPU
   int sleeping;                // ADDED: proc is blocked
+  int last_run;                // ADDED: cpu utilization difference
+  double util_avg;          // ADDED: cpu utilization average
 };
 
 // Process memory is laid out contiguously, low addresses first:

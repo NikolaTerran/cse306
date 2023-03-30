@@ -58,7 +58,7 @@ trap(struct trapframe *tf)
 
     //produces printout on console every 1000 ticks (~10 sec)
     t++;
-    //make sample every second
+    //calculate sample every second
     if (t % 100 == 0){
       calc_avg();
     }
