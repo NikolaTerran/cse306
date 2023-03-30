@@ -628,6 +628,7 @@ incrementstats(void) {
 // Some parts copied directly from procdump()
 static double avg = 0;
 #define CONSTANT 0.96
+#define CPU_CONS 0.93
 
 void calc_avg(){
   struct proc *p;
@@ -638,7 +639,7 @@ void calc_avg(){
       sample += 1.0;
     }
     double diff = (p->running - p->last_run)/100.0;
-    p->util_avg = CONSTANT * p->util_avg + (1-CONSTANT) * diff;
+    p->util_avg = CPU_CONS * p->util_avg + (1-CPU_CONS) * diff;
     p->last_run = p->running;
   }
   avg = CONSTANT * avg + (1-CONSTANT) * sample;

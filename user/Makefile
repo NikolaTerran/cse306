@@ -26,6 +26,7 @@ UPROGS=\
 	_play\
 	_overflow\
 	_loop\
+	_part3test\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)
