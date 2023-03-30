@@ -626,6 +626,21 @@ incrementstats(void) {
 // Called in trap.c, for every 1000 ticks
 
 // Some parts copied directly from procdump()
+static double avg = 0;
+#define CONSTANT 0.96
+
+void calc_avg(){
+  struct proc *p;
+  double sample = 0.0;
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+    //running or runnable
+    if(p->state == 3 || p->state == 4){
+      sample += 1.0;
+    }
+  }
+  avg = CONSTANT * avg + (1-CONSTANT) * sample;
+}
+
 void 
 printstats(int uptime) {
   static char *states[] = {
@@ -639,17 +654,18 @@ printstats(int uptime) {
   struct proc *p;
   char *state;
 
-  cprintf("cpus: 1, uptime: %d \n", uptime);
+  //recalculate avg
+  cprintf("cpus: 1, uptime: %d load(x100): %d\n", uptime, (int)(avg * 100.0));
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
     if (p->state == UNUSED)
       continue;
-    if(p->state >= 0 && p->state < NELEM(states) && states[p->state])
+    if(p->state >= 0 && p->state < NELEM(states) && states[p->state]){
       state = states[p->state];
+    }
     else
       state = "???";
-
+    
     cprintf("%d %s %s run: %d wait: %d sleep: %d \n", p->pid, state, p->name, p->running, p->runnable, p->sleeping);
-  
   }
   cprintf("\n");
   return;

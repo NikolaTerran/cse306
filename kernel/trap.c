@@ -37,6 +37,7 @@ idtinit(void)
 int t = 0;
 extern void incrementstats(void);
 extern void printstats(int);
+extern void calc_avg(void);
 
 void
 trap(struct trapframe *tf)
@@ -57,6 +58,10 @@ trap(struct trapframe *tf)
 
     //produces printout on console every 1000 ticks (~10 sec)
     t++;
+    //make sample every second
+    if (t % 100 == 0){
+      calc_avg();
+    }
     if (t % 1000 == 0) {
       //cprintf("timer interrupt!\n");
       printstats(t);
@@ -139,28 +144,6 @@ trap(struct trapframe *tf)
       //freevm(myproc()->pgdir);
       myproc()->killed = 1;
     }
-
-    //assume myproc is not 0
-    //if less than 4 megabytes
-    /* if(myproc()->sz < 4194304){
-      //allocate more
-      uint oldsz = KERNBASE-1 - myproc()->sz - PGSIZE;
-      if((allocuvm(myproc()->pgdir, oldsz, oldsz + PGSIZE)) == 0){
-        //something went wrong
-        cprintf("something went wrong when increment user memory\n");
-        myproc()->killed = 1;
-      }else{
-        myproc()->sz += PGSIZE;
-      }
-      // cprintf("alloc status: %d\n",status);
-      return;
-    }else{
-      //kill the process
-      myproc()->killed = 1;
-    } */
-
-
-
     break;
 
   //PAGEBREAK: 13
