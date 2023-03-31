@@ -7,6 +7,21 @@
 #include "proc.h"
 #include "spinlock.h"
 
+#define CPU_SCHEDULER 0
+
+static struct proc *roundrobin();
+static struct proc *lowestcpu();
+
+static struct proc *(*scheduler[])() = {
+  [0]    roundrobin,
+  [1]    lowestcpu,
+};
+
+static char *scheduler_str[] = {
+  [0]    "roundrobin",
+  [1]    "lowest CPU\% first",
+};
+
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
@@ -376,7 +391,7 @@ sched(void)
   }
 
   // Choose next process to run.
-  if((p = roundrobin()) != 0) {
+  if((p = scheduler[CPU_SCHEDULER]()) != 0) {
     // Switch to chosen process.  It is the process's job
     // to release ptable.lock and then reacquire it
     // before jumping back to us.
@@ -418,6 +433,25 @@ roundrobin()
     return p;
   }
   return 0;
+}
+
+// Lowest CPU-utilization scheduler
+
+static struct proc *
+lowestcpu()
+{
+  // for loop to choose the process with lowest util_avg value
+  double low_util = 100;
+  struct proc *p = 0;
+  for(int i = 0; i < NPROC; i++) {
+    if(ptable.proc[i].state != RUNNABLE)
+      continue; 
+    if(ptable.proc[i].util_avg < low_util) {
+      p = &ptable.proc[i];
+      low_util = p->util_avg;
+    }
+  }
+  return p;
 }
 
 // Called from timer interrupt to reschedule the CPU.
@@ -696,7 +730,7 @@ printstats(int uptime) {
   char *state;
 
   //recalculate avg
-  cprintf("cpus: %d, uptime: %d load(x100): %d\n", ncpu, uptime, (int)(avg * 100.0));
+  cprintf("cpus: %d, uptime: %d, load(x100): %d, scheduler: %s\n", ncpu, uptime, (int)(avg * 100.0),scheduler_str[CPU_SCHEDULER]);
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
     if (p->state == UNUSED)
       continue;
