@@ -58,6 +58,12 @@ struct proc {
   double util_avg;          // ADDED: cpu utilization average
   int last_wait;               // ADDED: ticks of waiting difference
   double wait_avg;             // ADDED: waiting for CPU average
+
+  int prev_sleeping;           // ADDED: flag for if previous state was SLEEPING
+  int curr_latency;
+  int max_latency;
+  double latency;
+  int in;
 };
 
 // Process memory is laid out contiguously, low addresses first:

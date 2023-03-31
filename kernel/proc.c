@@ -608,14 +608,20 @@ incrementstats(void) {
     if (p->state == UNUSED)
       continue;
 
-    if (p->state == RUNNING)
+    if (p->state == RUNNING) {
       p->running++;
+      p->prev_sleeping = 0;
+    }
 
-    if (p->state == RUNNABLE)
+    if (p->state == RUNNABLE) {
       p->runnable++;
+      p->prev_sleeping = 0;
+    }
 
-    if (p->state == SLEEPING)
+    if (p->state == SLEEPING) {
       p->sleeping++;
+      p->prev_sleeping = 1;
+    }
   }
   return;
 }
@@ -630,6 +636,29 @@ static double avg = 0;
 #define CONSTANT 0.96
 #define CPU_CONS 0.93
 #define WAIT_CONS 0.93
+#define WAKEUP_CONS 0.93
+
+void calc_latency() {
+  struct proc *p;
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+    if (p->prev_sleeping && p->state == RUNNABLE) {
+      p->in=1;
+    }
+
+    else if (p->in && p->state == RUNNABLE) {
+      p->curr_latency++;
+    }
+
+    else if (p->in && p->state == RUNNING) {
+      p->in=0;
+      if (p->curr_latency > p->max_latency)
+        p->max_latency = p->curr_latency;
+
+      p->curr_latency = 0;
+    }
+
+  }
+}
 
 void calc_avg(){
   struct proc *p;
@@ -643,6 +672,10 @@ void calc_avg(){
     double diff2 = (p->runnable - p->last_wait)/100.0;
     p->util_avg = CPU_CONS * p->util_avg + (1-CPU_CONS) * diff1;
     p->wait_avg = WAIT_CONS * p->wait_avg + (1-WAIT_CONS) * diff2;
+
+    p->latency = WAKEUP_CONS * p->latency + (1-WAKEUP_CONS) * p->max_latency;
+    p->max_latency = 0; //reset max for next 100 ticks
+
     p->last_run = p->running;
     p->last_wait = p->runnable;
   }
@@ -663,7 +696,7 @@ printstats(int uptime) {
   char *state;
 
   //recalculate avg
-  cprintf("cpus: 1, uptime: %d load(x100): %d\n", uptime, (int)(avg * 100.0));
+  cprintf("cpus: %d, uptime: %d load(x100): %d\n", ncpu, uptime, (int)(avg * 100.0));
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
     if (p->state == UNUSED)
       continue;
@@ -673,7 +706,9 @@ printstats(int uptime) {
     else
       state = "???";
     
-    cprintf("%d %s %s run: %d wait: %d sleep: %d cpu%: %d wait%: %d\n", p->pid, state, p->name, p->running, p->runnable, p->sleeping, (int)(p->util_avg * 100.0), (int)(p->wait_avg * 100.0));
+    cprintf("%d %s %s run: %d wait: %d sleep: %d cpu%: %d wait%: %d latency: %d\n", 
+      p->pid, state, p->name, p->running, p->runnable, p->sleeping, (int)(p->util_avg * 100.0), 
+      (int)(p->wait_avg * 100.0), (int) p->latency);
   }
   cprintf("\n");
   return;

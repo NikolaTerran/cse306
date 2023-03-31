@@ -38,6 +38,7 @@ int t = 0;
 extern void incrementstats(void);
 extern void printstats(int);
 extern void calc_avg(void);
+extern void calc_latency(void);
 
 void
 trap(struct trapframe *tf)
@@ -54,6 +55,7 @@ trap(struct trapframe *tf)
   switch(tf->trapno){
   case T_IRQ0 + IRQ_TIMER:
 
+    calc_latency();
     incrementstats();
 
     //produces printout on console every 1000 ticks (~10 sec)
