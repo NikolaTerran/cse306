@@ -11,15 +11,18 @@
 
 static struct proc *roundrobin();
 static struct proc *lowestcpu();
+static struct proc *highestwait();
 
 static struct proc *(*scheduler[])() = {
   [0]    roundrobin,
   [1]    lowestcpu,
+  [2]    highestwait
 };
 
 static char *scheduler_str[] = {
   [0]    "roundrobin",
   [1]    "lowest CPU\% first",
+  [2]    "highest wait\% first"
 };
 
 struct {
@@ -452,6 +455,26 @@ lowestcpu()
     }
   }
   return p;
+}
+
+// Highest wait percentage first scheduler
+static struct proc *
+highestwait()
+{
+  double high_wait = 0; //current max
+  struct proc *p = 0;
+
+  // for loop to choose the process with highest wait percentage
+  for (int i = 0; i < NPROC; i++) {
+    if(ptable.proc[i].state != RUNNABLE)
+      continue; 
+    if(ptable.proc[i].wait_avg > high_wait) {
+      p = &ptable.proc[i];
+      high_wait = p->wait_avg;
+    }
+  }
+  return p;
+
 }
 
 // Called from timer interrupt to reschedule the CPU.
