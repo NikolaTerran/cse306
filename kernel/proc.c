@@ -716,6 +716,17 @@ void calc_avg(){
   avg = CONSTANT * avg + (1-CONSTANT) * sample;
 }
 
+// Determines if there is an idle CPU that could run a process
+// An idle CPU means none of the processes in ptable are in the RUNNING state
+int is_cpu_idle() {
+  struct proc *p;
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+    if (p->state == RUNNING)
+      return 0;
+  }
+  return 1;
+}
+
 void 
 printstats(int uptime) {
   static char *states[] = {

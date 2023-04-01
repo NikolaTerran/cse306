@@ -39,6 +39,7 @@ extern void incrementstats(void);
 extern void printstats(int);
 extern void calc_avg(void);
 extern void calc_latency(void);
+extern int is_cpu_idle(void);
 
 void
 trap(struct trapframe *tf)
@@ -171,10 +172,17 @@ trap(struct trapframe *tf)
   if(myproc() && myproc()->killed && (tf->cs&3) == DPL_USER)
     exit();
 
-  // Invoke the scheduler on clock tick.
-  if(tf->trapno == T_IRQ0+IRQ_TIMER) {
+  // Previously: Invoke the scheduler on clock tick.
+  // if(tf->trapno == T_IRQ0+IRQ_TIMER) {
+    // reschedule();
+  // }
+
+  // Invoke the scheduler every QUANTUM (100) ticks,
+  // or if there is currently an idle CPU
+  if ((tf->trapno == T_IRQ0+IRQ_TIMER) && (is_cpu_idle() || t % QUANTUM == 0)) {
     reschedule();
   }
+
 
   // Check if the process has been killed since we yielded
   if(myproc() && myproc()->killed && (tf->cs&3) == DPL_USER)
