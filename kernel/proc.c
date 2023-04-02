@@ -7,7 +7,7 @@
 #include "proc.h"
 #include "spinlock.h"
 
-#define CPU_SCHEDULER 2
+#define CPU_SCHEDULER 0
 
 static struct proc *roundrobin();
 static struct proc *lowestcpu();

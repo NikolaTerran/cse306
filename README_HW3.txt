@@ -70,7 +70,7 @@ avg delay between issuing l1quant and text show up when 2 infloop instances are 
 (2.32 + 0.92 + 0.49 + 0.71 + 0.94)/5
 = 1.076 seconds
 
-stats after 20 cycles:
+stats after (approximately) 20 cycles:
 cpus: 1, uptime: 21000, load(x100): 200, scheduler: lowest CPU% first
 1 sleep init run: 1 wait: 12 sleep: 20987 cpu% : 0 wait%: latency: 0
 2 sleep init run: 0 wait:1 sleep: 20987 cpu%: 0 wait%: 0 latency: 0
