@@ -174,7 +174,12 @@ trap(struct trapframe *tf)
 
   // Previously: Invoke the scheduler on clock tick.
   // if(tf->trapno == T_IRQ0+IRQ_TIMER) {
-    // reschedule();
+  //   reschedule();
+  // }
+
+  // Invoke the scheduler every QUANTUM (100) ticks,
+  // if(tf->trapno == T_IRQ0+IRQ_TIMER && t % QUANTUM == 0) {
+  //   reschedule();
   // }
 
   // Invoke the scheduler every QUANTUM (100) ticks,
