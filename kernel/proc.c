@@ -662,22 +662,26 @@ void
 incrementstats(void) {
   struct proc *p;
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
-    if (p->state == UNUSED)
+    if (p->state == UNUSED) {
+      p->prev = 1;
       continue;
+    }
+    if (p->state == EMBRYO) 
+      p->prev = 1;
 
     if (p->state == RUNNING) {
       p->running++;
-      p->prev_sleeping = 0;
+      p->prev = 0;
     }
 
     if (p->state == RUNNABLE) {
       p->runnable++;
-      p->prev_sleeping = 0;
+      p->prev = 0;
     }
 
     if (p->state == SLEEPING) {
       p->sleeping++;
-      p->prev_sleeping = 1;
+      p->prev = 1;
     }
   }
   return;
@@ -698,7 +702,7 @@ static double avg = 0;
 void calc_latency() {
   struct proc *p;
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
-    if (p->prev_sleeping && p->state == RUNNABLE) {
+    if (p->prev && p->state == RUNNABLE) {
       p->in=1;
     }
 
@@ -742,12 +746,11 @@ void calc_avg(){
 // Determines if there is an idle CPU that could run a process
 // An idle CPU means none of the processes in ptable are in the RUNNING state
 int is_cpu_idle() {
-  struct proc *p;
-  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
-    if (p->state == RUNNING)
-      return 0;
-  }
-  return 1;
+  struct cpu *c = mycpu();
+  if (c->proc)
+    return 0;
+  else
+    return 1;
 }
 
 void 

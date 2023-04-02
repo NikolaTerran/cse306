@@ -59,7 +59,7 @@ struct proc {
   int last_wait;               // ADDED: ticks of waiting difference
   double wait_avg;             // ADDED: waiting for CPU average
 
-  int prev_sleeping;           // ADDED: flag for if previous state was SLEEPING
+  int prev;            // ADDED: checks if previous state is neither RUNNING nor RUNNABLE
   int curr_latency;
   int max_latency;
   double latency;
