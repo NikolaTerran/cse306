@@ -4,7 +4,7 @@ Changes to xv6/Makefile.inc: added the line "CFLAGS += -DQUANTUM=100" as stated 
 
 Created new files in xv6/user directory (loop.c, infloop.c, part3test.c, and l1quant.c) to test out the different schedulers in exercise 7. Changed xv6/user/Makefile to link these new files accordingly so that they can run in xv6 via command line.
 
-To see the outputs for each exercise, see the README_HW3_figures.docx file, which contains screenshots. (Need to open this file using a word processing program such as Microsoft Word or Apple Pages.)
+To see the outputs for each exercise, see the README_HW3_figures.pdf file, which contains screenshots. 
 
 # part 0
 
