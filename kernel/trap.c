@@ -65,10 +65,10 @@ trap(struct trapframe *tf)
     if (t % 100 == 0){
       calc_avg();
     }
-    if (t % 1000 == 0) {
-      //cprintf("timer interrupt!\n");
-      printstats(t);
-    } 
+    // if (t % 1000 == 0) {
+    //   //cprintf("timer interrupt!\n");
+    //   printstats(t);
+    // } 
 
     if(cpuid() == 0){
       acquire(&tickslock);
