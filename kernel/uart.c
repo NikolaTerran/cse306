@@ -64,7 +64,7 @@ static int inbound_port = 0;
 void
 uartputc(int c)
 {
-  int i;
+  // int i;
 
   if(!uart)
     return;
@@ -73,8 +73,8 @@ uartputc(int c)
   // output overrun, as indicated by log messages in the
   // Bochs log file.  This is with microdelay() having an
   // empty body and ignoring its argument.
-  for(i = 0; i < 1000 && !(inb(COM1_PORT+5) & 0x20); i++)
-    microdelay(10);
+  // for(i = 0; i < 1000 && !(inb(COM1_PORT+5) & 0x20); i++)
+  //   microdelay(10);
 
   if(c == BACKSPACE){
     outb(inbound_port, '\b');
@@ -262,7 +262,9 @@ uartinit(void)
   outb(COM1_PORT+1, 0);
   outb(COM1_PORT+3, 0x03);    // Lock divisor, 8 data bits.
   outb(COM1_PORT+4, 0);
-  outb(COM1_PORT+1, 0x01);    // Enable receive interrupts.
+  // outb(COM1_PORT+1, 0x01);    // Enable receive interrupts.
+  outb(COM1_PORT+1, 0x03);    // Enable receive and transmit interrupts.
+
 
   // If status is 0xFF, no serial port.
   if(inb(COM1_PORT+5) == 0xFF)
@@ -297,7 +299,8 @@ uartinit(void)
   outb(COM2_PORT+1, 0);
   outb(COM2_PORT+3, 0x03);    // Lock divisor, 8 data bits.
   outb(COM2_PORT+4, 0);
-  outb(COM2_PORT+1, 0x01);    // Enable receive interrupts.
+  // outb(COM2_PORT+1, 0x01);    // Enable receive interrupts.
+  outb(COM2_PORT+1, 0x03);    // Enable receive and transmit interrupts.
 
   // If status is 0xFF, no serial port.
   if(inb(COM2_PORT+5) == 0xFF)
