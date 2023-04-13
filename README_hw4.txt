@@ -5,7 +5,7 @@ Exercise 2:
 PCI Bus Device Enumeration
 
 So basically we want to loop over all 65535 i/o port
-port value is calculated by bus << 8 + device << 3 + function
+port value is calculated by bus << 8 + device << 3 + function (note: use Configuration Access Mechanism to read the configuration instead of read from the port directly)
 read a word off of port gives us the vendor id
 we want to find a device whose vendor id = 8086 and device id of 0x7010
 then we can find BAR4 based on that:
