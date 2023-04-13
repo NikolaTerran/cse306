@@ -63,7 +63,7 @@ static int inbound_port = 0;
 
 
 // HW4
-#define OUTPUT_BUF 12000
+#define OUTPUT_BUF 128
 static char output_buf[OUTPUT_BUF];
 int head = 0;
 int poll_head=0;
@@ -97,7 +97,7 @@ void uartstart() {
       wakeup(&freespace);
     }
 
-    if(c == BACKSPACE){
+    if(c == '\b'){
       outb(inbound_port, '\b');
       outb(inbound_port, ' ');
       outb(inbound_port, '\b');
@@ -158,7 +158,6 @@ uartputc(int c)
   // for(i = 0; i < 1000 && !(inb(COM1_PORT+5) & 0x20); i++)
   //  microdelay(10);
 
-
   // Puts the character in an output buffer, rather than polling
   // the device and outputting it directly. 
 
@@ -174,7 +173,11 @@ uartputc(int c)
     head = 0;
   }
 
-  output_buf[head] = c;
+  if (c == BACKSPACE)
+    output_buf[head] = '\b';
+  else
+    output_buf[head] = c;
+
   head++;
   freespace--;
   release(&output_buflock);
