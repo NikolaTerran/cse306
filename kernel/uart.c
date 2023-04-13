@@ -61,6 +61,88 @@ struct {
 
 static int inbound_port = 0;
 
+
+// HW4
+#define OUTPUT_BUF 12000
+static char output_buf[OUTPUT_BUF];
+int head = 0;
+int poll_head=0;
+int freespace = OUTPUT_BUF;
+struct spinlock output_buflock;
+
+int busy=0;
+
+// Function to check if the transmitter is busy.
+// If not, removes the first character in the output buffer and issues it 
+// for transmission, setting "busy" to 1 to indicate that the transmitter is busy. 
+void uartstart() {
+
+  if (inb(COM1_PORT+5) & 0x20) {
+    busy=0;
+  }
+
+  if (!busy) {
+    // transmitter ready to accept a character
+
+    // removes the first character in the output buffer and issues it for transmission,
+    if (poll_head == OUTPUT_BUF)
+      poll_head = 0;
+
+    int c = output_buf[poll_head];
+    // cprintf("Polling %s from buf\n", &c);
+    output_buf[poll_head] = '\0'; //clear the spot in buf
+    poll_head++;
+    freespace++;
+    if (freespace > 0) {
+      wakeup(&freespace);
+    }
+
+    if(c == BACKSPACE){
+      outb(inbound_port, '\b');
+      outb(inbound_port, ' ');
+      outb(inbound_port, '\b');
+    }else{
+      if(inbound_port == COM1_PORT){
+        if(c == '\n'){
+          outb(inbound_port, c);
+          while(com1_size){
+            outb(inbound_port, '\b');
+            outb(inbound_port, ' ');
+            outb(inbound_port, '\b');
+            com1_size -= 1;
+          }
+        }else{
+          com1_size += 1;
+        }
+      }else if(inbound_port == COM2_PORT){
+        if(c == '\n'){
+          outb(inbound_port, c);
+          while(com2_size){
+            outb(inbound_port, '\b');
+            outb(inbound_port, ' ');
+            outb(inbound_port, '\b');
+            com2_size -= 1;
+          }
+        }else{
+          com2_size += 1;
+        }
+      }
+      if(c != '\n'){
+        if(c == 27){
+          outb(inbound_port, 218);
+        }else{
+          outb(inbound_port,c);
+        } 
+      }
+    }
+    busy=1;
+
+
+
+  }
+
+}
+
 void
 uartputc(int c)
 {
@@ -74,8 +156,32 @@ uartputc(int c)
   // Bochs log file.  This is with microdelay() having an
   // empty body and ignoring its argument.
   // for(i = 0; i < 1000 && !(inb(COM1_PORT+5) & 0x20); i++)
-  //   microdelay(10);
+  //  microdelay(10);
 
+
+  // Puts the character in an output buffer, rather than polling
+  // the device and outputting it directly. 
+
+  //If output buf is full, block process using sleep()
+  acquire(&output_buflock);
+  if (freespace == 0) { 
+    //buffer currently full
+    cprintf("Buffer full, sleeping on chan\n");
+    sleep(&freespace, &output_buflock);
+  }
+  if (head == OUTPUT_BUF) {
+    //loop around, circular buffer
+    head = 0;
+  }
+
+  output_buf[head] = c;
+  head++;
+  freespace--;
+  release(&output_buflock);
+
+  uartstart();
+
+  /*
   if(c == BACKSPACE){
     outb(inbound_port, '\b');
     outb(inbound_port, ' ');
@@ -114,6 +220,8 @@ uartputc(int c)
       } 
     }
   }
+  */
+  
 }
 
 static int
@@ -332,6 +440,17 @@ uartintr(int com)
   // consoleintr(uartgetc);
 
   int c, doprocdump = 0;
+
+
+  if (inb(COM1_PORT+2) & 0x2) {
+    cprintf("transmitter interrupt\n");
+    busy=0;
+  }
+
+  if (inb(COM1_PORT+2) & 0x4) {
+    cprintf("receiver interrupt\n");
+  }
+
 
   //COM1 requested the interrupt
   if (com==1) {
