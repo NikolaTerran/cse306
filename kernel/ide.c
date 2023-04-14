@@ -78,24 +78,18 @@ outl(ushort port, unsigned long data)
 
 
 char getBaseClass(char bus, char device, char function){
-  ushort port = (bus << 8) + (device << 3) + function;
-  inl(port+1);
-  char header = inl(port+1) >> 24;
-  return header;
+  outl(0xcf8, 0x80000000 | (bus<<16) | (device<<11) | (function<<8) | 0xB);
+  return inb(0xcfc);
 }
 
 char getSubClass(char bus, char device, char function){
-  ushort port = (bus << 8) + (device << 3) + function;
-  inl(port+1);
-  char header = inl(port+1) >> 16;
-  return header;
+  outl(0xcf8, 0x80000000 | (bus<<16) | (device<<11) | (function<<8) | 0xA);
+  return inb(0xcfc);
 }
 
 char getSecondaryBus(char bus, char device, char function){
-  //check the math here: https://renenyffenegger.ch/notes/hardware/PCI/index
-  ushort port = (bus << 8) + (device << 3) + function;
-  char id = inw(port + 3) >> 8;
-  return id;
+  outl(0xcf8, 0x80000000 | (bus<<16) | (device<<11) | (function<<8) | 0x19);
+  return inb(0xcfc);
 }
 
 
@@ -105,20 +99,13 @@ char getSecondaryBus(char bus, char device, char function){
 //and locate their interface registers in either the I/O port space or mapped into the physical address space. 
 //assume that there is just one PCI bus and avoid complication
 char getHeaderType(char bus, char device, char function) {
-  ushort port = (bus << 8) + (device << 3) + function;
-  
-  char header = inl(port+1);
-  // cprintf("header: 0x%x\n",header);
-  header =  inl(port+1) >> 8;
-  // cprintf("       : 0x%x\n",header);
-  return header;
+  outl(0xcf8, 0x80000000 | (bus<<16) | (device<<11) | (function<<8) | 0xE);
+  return inb(0xcfc);
 }
 
-int getVendorID(char bus, char device, char function){
-  //check the math here: https://renenyffenegger.ch/notes/hardware/PCI/index
-  ushort port = (bus << 8) + (device << 3) + function;
-  int id = inw(port);
-  return id;
+short getVendorID(char bus, char device, char function){
+  outl(0xcf8, 0x80000000 | (bus<<16) | (device<<11) | (function<<8) | 0);
+  return inw(0xcfc);
 }
 
 //PCI Bus Device Enumeration #paragraph 2-2
@@ -130,7 +117,7 @@ int getVendorID(char bus, char device, char function){
 //In addition, if bit 7 of the header type byte is set, then then the device is a multi-function device, so the other functions besides function 0 should also be queried. 
 void checkDevice(char bus, char device) {
     char function = 0;
-    int vendorID = getVendorID(bus, device, function);
+    short vendorID = getVendorID(bus, device, function);
     if (vendorID == 0xffff) return; // Device doesn't matter
     checkFunction(bus, device, function);
     int headerType = getHeaderType(bus, device, function);
@@ -161,11 +148,14 @@ void checkBus(char bus) {
 //This is the way that the stock IDE driver in xv6 expects to interact with the IDE controller. The IDE controller works in conjunction with the Bus Master DMA controller, which is also part of the 82371 chip. 
 void checkFunction(char bus, char device, char function) {
 
-  ushort port = (bus << 8) + (device << 3) + function;
-  int id = inw(port);
+  ushort id = getVendorID(bus, device, function);
   if(id == 0x8086){
-    cprintf("port: 0x%x, value: 0x%x, again?%x\n",port,id,inw(port));
-    cprintf("found it!\n");
+    //get device id
+    outl(0xcf8, 0x80000000 | (bus<<16) | (device<<11) | (function<<8) | 0x2);
+    if(inw(0xcfc) == 0x7010){
+      cprintf("vendor id: 0x%x    device id: 0x%x\n",id,inw(0xcfc));
+      cprintf("ide controller found! setup control bit and store base address of I/O port here!\n");
+    }
   }
 
   char baseClass;
@@ -186,6 +176,8 @@ void checkFunction(char bus, char device, char function) {
 //Each bus has up to 32 "slots" into which devices are connected. 
 //Each slot is uniquely identified by a number in the range [0, 31]. 
 //For each bus, the slots are scanned, also in increasing numerical order. 
+
+// //brute-force takes forever
 // void checkAllBuses(void) {
 //     char bus;
 //     char device;
@@ -197,30 +189,30 @@ void checkFunction(char bus, char device, char function) {
 // }
 
  void checkAllBuses(void) {
-    //  char function;
-    //  char bus;
  
-    // debug, it shows the config of the first pci device
-    // short port = (0 << 8) + (1 << 3) + 0;
-    int i = 0;
-    while(i < 16){
-      outl(0xcf8, 0x80000000 | (0<<16) | (1<<11) | (0<<8) | i);
-      cprintf(" %x ",inw(0xcfc));
-      i += 2;
-    }
+    // // debug, it shows the config of the first pci device
+    // int i = 0;
+    // while(i < 16){
+    //   outl(0xcf8, 0x80000000 | (0<<16) | (1<<11) | (0<<8) | i);
+    //   cprintf(" %x ",inw(0xcfc));
+    //   i += 2;
+    // }
 
-    //  short headerType = getHeaderType(0, 0, 0);
-    //  if ((headerType & 0x80) == 0) {
-    //      // Single PCI host controller
-    //      checkBus(0);
-    //  } else {
-    //      // Multiple PCI host controllers
-    //      for (function = 0; function < 8; function++) {
-    //          if (getVendorID(0, 0, function) != 0xFFFF) break;
-    //          bus = function;
-    //          checkBus(bus);
-    //      }
-    //  }
+     char function;
+     char bus;
+
+     short headerType = getHeaderType(0, 0, 0);
+     if ((headerType & 0x80) == 0) {
+         // Single PCI host controller
+         checkBus(0);
+     } else {
+         // Multiple PCI host controllers
+         for (function = 0; function < 8; function++) {
+             if (getVendorID(0, 0, function) != 0xFFFF) break;
+             bus = function;
+             checkBus(bus);
+         }
+     }
  }
 
 //PCI Bus Device Enumeration #paragraph 4 and 5
