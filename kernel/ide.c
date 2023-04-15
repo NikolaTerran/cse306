@@ -24,6 +24,38 @@
 #define IDE_CMD_RDMUL 0xc4
 #define IDE_CMD_WRMUL 0xc5
 
+
+
+// A PRDT consists of one or more Physical Region Descriptors (PRDs), 
+// each of which describes the source or destination in memory for a transfer operation to be performed by the disk drive. 
+// Each PRD is an eight-byte entry: the first four bytes are the physical memory address at which data is to be read or written; 
+// the next two bytes give the number of bytes to be transferred (value 0 means the maximum of 64K bytes). 
+// The two bytes are reserved, except for the most-significant bit (called "end of transfer", or EOT), 
+// which is set to indicate to the DMA controller that that particular PRD is the last entry in the PRDT.
+
+#define PRDT_ENTRIES 1
+
+struct prd {
+    uint address;
+    ushort bytes;
+    ushort eot;
+};
+
+struct prd prd_table[PRDT_ENTRIES];
+
+void init_prdt_table(void) {
+    int i;
+    for (i = 0; i < PRDT_ENTRIES; i++) {
+        prd_table[i].address = 0;
+        prd_table[i].bytes = 0;
+        prd_table[i].eot = 0;
+    }
+    prd_table[i].eot = 0x80;
+}
+
+// port for bus master register
+static uint dma_port;
+
 void checkFunction(char bus, char device, char function);
 
 // idequeue points to the buf now being read/written to the disk.
@@ -75,7 +107,6 @@ outl(ushort port, unsigned long data)
 {
   asm volatile("out %0,%1" : : "a" (data), "d" (port));
 }
-
 
 char getBaseClass(char bus, char device, char function){
   outl(0xcf8, 0x80000000 | (bus<<16) | (device<<11) | (function<<8) | 0xB);
@@ -153,8 +184,24 @@ void checkFunction(char bus, char device, char function) {
     //get device id
     outl(0xcf8, 0x80000000 | (bus<<16) | (device<<11) | (function<<8) | 0x2);
     if(inw(0xcfc) == 0x7010){
+      //In order to engage DMA mode for IDE disk transfers, the DMA controller first has to be enabled. 
+      //This is done by reading the command register at address 0x4 in the PCI configuration space for the Bus Master, 
+      //setting bit 0 (value 0x1) and writing the updated value back to the command register. 
+      //If you don't do this, then you won't ever get any interrupts back when you send a disk drive a "Read DMA" or "Write DMA" command.
+      // The need for enabling the device in this way was not evident to me from the documents that I read, and it took quite awhile before I discovered it. 
+      
       cprintf("vendor id: 0x%x    device id: 0x%x\n",id,inw(0xcfc));
       cprintf("ide controller found! setup control bit and store base address of I/O port here!\n");
+      outl(0xcf8, 0x80000000 | (bus<<16) | (device<<11) | (function<<8) | 0x4);
+      
+      //the value is 103 -> 100000011
+      //https://wiki.osdev.org/PCI#Command_Register
+      cprintf("command reg: 0x%x\n",inw(0xcfc));
+      
+      outl(0xcf8, 0x80000000 | (bus<<16) | (device<<11) | (function<<8) | 0x20);
+      dma_port = inl(0xcfc) & 0xfffffff0;
+      cprintf("io_port: 0x%x\n",dma_port);
+      //https://wiki.osdev.org/ATA/ATAPI_using_DMA
     }
   }
 
@@ -171,24 +218,12 @@ void checkFunction(char bus, char device, char function) {
 }
 
 
-
 //There can be up to 256 PCI buses on a system. Each bus is uniquely identified by a number in the range [0, 255]. 
 //Each bus has up to 32 "slots" into which devices are connected. 
 //Each slot is uniquely identified by a number in the range [0, 31]. 
 //For each bus, the slots are scanned, also in increasing numerical order. 
 
-// //brute-force takes forever
-// void checkAllBuses(void) {
-//     char bus;
-//     char device;
-//     for (bus = 0; bus < 256; bus++) {
-//         for (device = 0; device < 32; device++) {
-//             checkDevice(bus, device);
-//         }
-//     }
-// }
-
- void checkAllBuses(void) {
+void checkAllBuses(void) {
  
     // // debug, it shows the config of the first pci device
     // int i = 0;
@@ -234,22 +269,23 @@ ideinit(void)
   ioapicenable(IRQ_IDE, ncpu - 1);
 
   checkAllBuses();
+  init_prdt_table();
   cprintf("ideinit complete\n");
-  // // Old code
-  // int i;
-  // idewait(0);
-  // // Check if disk 1 is present
-  // outb(0x1f6, 0xe0 | (1<<4));
-  // for(i=0; i<1000; i++){
-  //   if(inb(0x1f7) != 0){
-  //     havedisk1 = 1;
-  //     break;
-  //   }
-  // }
+  // Old code
+  int i;
+  idewait(0);
+  // Check if disk 1 is present
+  outb(0x1f6, 0xe0 | (1<<4));
+  for(i=0; i<1000; i++){
+    if(inb(0x1f7) != 0){
+      havedisk1 = 1;
+      break;
+    }
+  }
   
-  // // Switch back to disk 0.
-  // outb(0x1f6, 0xe0 | (0<<4));
-  // // End old code
+  // Switch back to disk 0.
+  outb(0x1f6, 0xe0 | (0<<4));
+  // End old code
 }
 
 
@@ -270,6 +306,7 @@ idestart(struct buf *b)
   if (sector_per_block > 7) panic("idestart");
 
   idewait(0);
+  // load first half of parameters?
   outb(0x3f6, 0);  // generate interrupt
   outb(0x1f2, sector_per_block);  // number of sectors
   outb(0x1f3, sector & 0xff);
