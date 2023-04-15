@@ -16,3 +16,6 @@ The offset range from [0-64] which corresponds to the 64 bytes in the standard p
 then read from (0xcfc) with inb
 also see the "software implementation" part of 
 https://en.wikipedia.org/wiki/PCI_configuration_space
+
+
+physical region descriptor table:
