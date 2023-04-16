@@ -64,45 +64,54 @@ static int inbound_port = 0;
 
 // HW4
 #define OUTPUT_BUF 128
-static char output_buf[OUTPUT_BUF];
-int head = 0;
-int poll_head=0;
-int freespace = OUTPUT_BUF;
-struct spinlock output_buflock;
+//for COM1:
+static char output_buf1[OUTPUT_BUF];
+int head1 = 0;
+int poll_head1=0;
+int freespace1 = OUTPUT_BUF;
+struct spinlock output_buflock1;
+int busy1 = 0;
 
-int busy=0;
+//for COM2:
+static char output_buf2[OUTPUT_BUF];
+int head2 = 0;
+int poll_head2=0;
+int freespace2 = OUTPUT_BUF;
+struct spinlock output_buflock2;
+int busy2 = 0;
+
 
 // Function to check if the transmitter is busy.
 // If not, removes the first character in the output buffer and issues it 
 // for transmission, setting "busy" to 1 to indicate that the transmitter is busy. 
 void uartstart() {
 
-  if (inb(COM1_PORT+5) & 0x20) {
-    busy=0;
-  }
-
-  if (!busy) {
-    // transmitter ready to accept a character
-
-    // removes the first character in the output buffer and issues it for transmission,
-    if (poll_head == OUTPUT_BUF)
-      poll_head = 0;
-
-    int c = output_buf[poll_head];
-    // cprintf("Polling %s from buf\n", &c);
-    output_buf[poll_head] = '\0'; //clear the spot in buf
-    poll_head++;
-    freespace++;
-    if (freespace > 0) {
-      wakeup(&freespace);
+  if (inbound_port == COM1_PORT) {
+    if (inb(COM1_PORT+5) & 0x20) {
+      busy1=0;
     }
 
-    if(c == '\b'){
-      outb(inbound_port, '\b');
-      outb(inbound_port, ' ');
-      outb(inbound_port, '\b');
-    }else{
-      if(inbound_port == COM1_PORT){
+    if (!busy1) {
+      // transmitter ready to accept a character
+
+      // removes the first character in the output buffer and issues it for transmission,
+      if (poll_head1 == OUTPUT_BUF)
+        poll_head1 = 0;
+
+      int c = output_buf1[poll_head1];
+      // cprintf("Polling %s from buf\n", &c);
+      output_buf1[poll_head1] = '\0'; //clear the spot in buf
+      poll_head1++;
+      freespace1++;
+      if (freespace1 > 0) {
+        wakeup(&freespace1);
+      }
+
+      if(c == '\b'){
+        outb(inbound_port, '\b');
+        outb(inbound_port, ' ');
+        outb(inbound_port, '\b');
+      }else{
         if(c == '\n'){
           outb(inbound_port, c);
           while(com1_size){
@@ -114,7 +123,46 @@ void uartstart() {
         }else{
           com1_size += 1;
         }
-      }else if(inbound_port == COM2_PORT){
+        if(c != '\n'){
+          if(c == 27){
+            outb(inbound_port, 218);
+          }else{
+            outb(inbound_port,c);
+          } 
+        }
+      }
+      busy1=1;
+    }
+  }
+
+
+
+  if (inbound_port == COM2_PORT) {
+    if (inb(COM2_PORT+5) & 0x20) {
+      busy2=0;
+    }
+
+    if (!busy2) {
+      // transmitter ready to accept a character
+
+      // removes the first character in the output buffer and issues it for transmission,
+      if (poll_head2 == OUTPUT_BUF)
+        poll_head2 = 0;
+
+      int c = output_buf2[poll_head2];
+      // cprintf("Polling %s from buf\n", &c);
+      output_buf2[poll_head2] = '\0'; //clear the spot in buf
+      poll_head2++;
+      freespace2++;
+      if (freespace2 > 0) {
+        wakeup(&freespace2);
+      }
+
+      if(c == '\b'){
+        outb(inbound_port, '\b');
+        outb(inbound_port, ' ');
+        outb(inbound_port, '\b');
+      }else{
         if(c == '\n'){
           outb(inbound_port, c);
           while(com2_size){
@@ -126,20 +174,20 @@ void uartstart() {
         }else{
           com2_size += 1;
         }
+        
+        if(c != '\n'){
+          if(c == 27){
+            outb(inbound_port, 218);
+          }else{
+            outb(inbound_port,c);
+          } 
+        }
       }
-      if(c != '\n'){
-        if(c == 27){
-          outb(inbound_port, 218);
-        }else{
-          outb(inbound_port,c);
-        } 
-      }
+      busy2=1;
     }
-    busy=1;
-
-
-
   }
+
+
 
 }
 
@@ -162,68 +210,51 @@ uartputc(int c)
   // the device and outputting it directly. 
 
   //If output buf is full, block process using sleep()
-  acquire(&output_buflock);
-  if (freespace == 0) { 
-    //buffer currently full
-    cprintf("Buffer full, sleeping on chan\n");
-    sleep(&freespace, &output_buflock);
-  }
-  if (head == OUTPUT_BUF) {
-    //loop around, circular buffer
-    head = 0;
+  if (inbound_port == COM1_PORT) {
+    acquire(&output_buflock1);
+    if (freespace1 == 0) { 
+      //buffer currently full
+      cprintf("Buffer full, sleeping on chan\n");
+      sleep(&freespace1, &output_buflock1);
+    }
+    if (head1 == OUTPUT_BUF) {
+      //loop around, circular buffer
+      head1 = 0;
+    }
+
+    if (c == BACKSPACE)
+      output_buf1[head1] = '\b';
+    else
+      output_buf1[head1] = c;
+
+    head1++;
+    freespace1--;
+    release(&output_buflock1);
   }
 
-  if (c == BACKSPACE)
-    output_buf[head] = '\b';
-  else
-    output_buf[head] = c;
+  if (inbound_port == COM2_PORT) {
+    acquire(&output_buflock2);
+    if (freespace2 == 0) { 
+      //buffer currently full
+      cprintf("Buffer full, sleeping on chan\n");
+      sleep(&freespace2, &output_buflock2);
+    }
+    if (head2 == OUTPUT_BUF) {
+      //loop around, circular buffer
+      head2 = 0;
+    }
 
-  head++;
-  freespace--;
-  release(&output_buflock);
+    if (c == BACKSPACE)
+      output_buf2[head2] = '\b';
+    else
+      output_buf2[head2] = c;
+
+    head2++;
+    freespace2--;
+    release(&output_buflock2);
+  }
 
   uartstart();
-
-  /*
-  if(c == BACKSPACE){
-    outb(inbound_port, '\b');
-    outb(inbound_port, ' ');
-    outb(inbound_port, '\b');
-  }else{
-    if(inbound_port == COM1_PORT){
-      if(c == '\n'){
-        outb(inbound_port, c);
-        while(com1_size){
-          outb(inbound_port, '\b');
-          outb(inbound_port, ' ');
-          outb(inbound_port, '\b');
-          com1_size -= 1;
-        }
-      }else{
-        com1_size += 1;
-      }
-    }else if(inbound_port == COM2_PORT){
-      if(c == '\n'){
-        outb(inbound_port, c);
-        while(com2_size){
-          outb(inbound_port, '\b');
-          outb(inbound_port, ' ');
-          outb(inbound_port, '\b');
-          com2_size -= 1;
-        }
-      }else{
-        com2_size += 1;
-      }
-    }
-    if(c != '\n'){
-      if(c == 27){
-        outb(inbound_port, 218);
-      }else{
-        outb(inbound_port,c);
-      } 
-    }
-  }
-  */
   
 }
 
@@ -444,19 +475,17 @@ uartintr(int com)
 
   int c, doprocdump = 0;
 
-
-  if (inb(COM1_PORT+2) & 0x2) {
-    cprintf("transmitter interrupt\n");
-    busy=0;
-  }
-
-  if (inb(COM1_PORT+2) & 0x4) {
-    cprintf("receiver interrupt\n");
-  }
-
-
   //COM1 requested the interrupt
   if (com==1) {
+
+    if (inb(COM1_PORT+2) & 0x2) {
+      cprintf("transmitter interrupt\n");
+      busy1=0;
+    }
+
+    if (inb(COM1_PORT+2) & 0x4) {
+      cprintf("receiver interrupt\n");
+    }
 
     acquire(&uartlock1.lock);
     while((c = uartgetc()) >= 0){
@@ -500,6 +529,14 @@ uartintr(int com)
 
   //COM2 requested an interrupt
   else if (com==2) {
+    if (inb(COM2_PORT+2) & 0x2) {
+      cprintf("transmitter interrupt\n");
+      busy2=0;
+    }
+
+    if (inb(COM2_PORT+2) & 0x4) {
+      cprintf("receiver interrupt\n");
+    }
 
     acquire(&uartlock2.lock);
     while((c = uartgetc()) >= 0){
