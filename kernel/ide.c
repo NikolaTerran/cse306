@@ -25,7 +25,7 @@
 #define IDE_CMD_WRMUL 0xc5
 
 // 1 enable dma, 0 use pio
-#define DMA 1
+#define DMA 0
 #define DMA_WRITE 0xca
 #define DMA_READ 0xc8
 
@@ -38,22 +38,16 @@
 
 #define PRDT_ENTRIES 1
 
-struct prd {
-    uint address;
-    ushort bytes;
-    ushort eot;
-};
-
-struct prd __attribute__ ((aligned (4))) prd_table[PRDT_ENTRIES];
+static unsigned long long __attribute__ ((aligned (4))) *prd_table;
+static char* test_addr;
 
 void init_prdt_table(void) {
+    prd_table = (unsigned long long*)kalloc();
     int i;
     for (i = 0; i < PRDT_ENTRIES; i++) {
-        prd_table[i].address = 0;
-        prd_table[i].bytes = 0;
-        prd_table[i].eot = 0;
+        prd_table[i] = 0;
     }
-    prd_table[i-1].eot = 0x80;
+    prd_table[i-1] = 0x8000000000000000;
 }
 
 // port for bus master register
@@ -211,16 +205,10 @@ void checkFunction(char bus, char device, char function) {
       //the value is 103 -> 100000011
       //https://wiki.osdev.org/PCI#Command_Register
       // cprintf("command reg: 0x%x\n",inw(0xcfc));
-      
-      //check status
-      // outl(0xcf8, 0x80000000 | (bus<<16) | (device<<11) | (function<<8) | 0x6);
-      // cprintf("status: 0x%x\n",inw(0xcfc));
-      // 1010000000
 
       outl(0xcf8, 0x80000000 | (bus<<16) | (device<<11) | (function<<8) | 0x20);
       dma_port = inl(0xcfc) & 0xfffffffc;
       cprintf("dma_port: 0x%x\n",dma_port);
-
 
       // //debug
       // uint i = 0;
@@ -229,13 +217,6 @@ void checkFunction(char bus, char device, char function) {
       //   cprintf("test: 0x%x\n",inl(0xcfc));
       //   i+=0x4;
       // }
-      
-
-      // outl(0xcf8, 0x80000000 | (bus<<16) | (device<<11) | (function<<8) | 0xb);
-      // cprintf("class code: 0x%x\n",inb(0xcfc));
-      // cprintf("status: 0x%x\n",inw(dma_port + 0x2));
-      // outl(0xcf8, 0x80000000 | (bus<<16) | (device<<11) | (function<<8) | 0xe);
-      // cprintf("header type: 0x%x\n",inb(0xcfc));
     }
   }
 
@@ -354,9 +335,23 @@ idestart(struct buf *b)
   if(DMA){
     //The "other half" of the parameters for the transfer must be set up for the DMA controller. 
     //1. physical address for the data transfer -> setting up PRDT in memory and writing the physical address to the DMA controller PDTR (offsets 0x4-0x7 from the BAR4 base value)
-    prd_table[0].address = (uint)b->data;
-    prd_table[0].bytes = BSIZE/4;
-    outl(dma_port + 0x4, (uint)&prd_table);
+    
+    // prd_table[0] += (uint)&(b->data);
+    // outl(dma_port + 0x4, (long unsigned int)prd_table);
+
+    // cprintf("prdt addr: %x\n",(long unsigned int)prd_table[0].entry);
+
+    //test transfer
+    uint i = 15;
+    cprintf("test addr before: %x\n",(long unsigned int)test_addr);
+    cprintf("prdt[0] before: %x\n",(long unsigned int)prd_table[0]);
+    test_addr = kalloc();
+    prd_table[0] += (uint)(test_addr);
+    outl(dma_port + 0x4, (uint)(prd_table));
+    cprintf("prdt[0]: %x\n",(unsigned long long)prd_table[0]);
+    cprintf("test addr: %x\n",(uint)(&i));
+    cprintf("test value: %x\n",(uint)*(&i));
+
     //2. number of bytes to be transferred -> get it from buf???
 
     //3. DMA read or DMA write -> setting the data transfer direction in Bit 3 (value 0x8) of the Bus Master command register (offset 0x0 from the base; bit 3 set for DMA writes, and clear for DMA reads);
@@ -367,16 +362,20 @@ idestart(struct buf *b)
 
     // The disk transfer should be started by writing the appropriate command byte (0xc8 for DMA read, 0xca for DMA write) into the IDE controller command register (at port 0x1f7) 
     // sector per block is always one, no need to setup RDMUL or WRMUL for DMA
+    ushort dma_command = inb(dma_port);
     if(b->flags & B_DIRTY){
-      outb(dma_port, 0x9);
+      outb(dma_port,  dma_command | 0x8);
       outb(0x1f7, DMA_WRITE);
     }else{
-      outb(dma_port, 0x1);
       outb(0x1f7, DMA_READ);
     }
+    outb(dma_port, dma_command | 0x1);
     //check status
-    cprintf("status: 0x%x\n",inb(dma_port+0x2));
+    cprintf("status: 0x%x\n",inb(dma_port + 2));
+    //debug read the prdt register
+    cprintf("prdt: %d\n",inl(dma_port +4));
   }else{
+    test_addr = kalloc();
     if(b->flags & B_DIRTY){
       outb(0x1f7, write_cmd);
       outsl(0x1f0, b->data, BSIZE/4);
@@ -390,8 +389,11 @@ idestart(struct buf *b)
 void
 ideintr(void)
 {
-  struct buf *b;
+  if(DMA && !(inb(dma_port + 2) & 0x4)){
+    goto END;
+  }
 
+  struct buf *b;
   // First queued buffer is the active request.
   acquire(&idelock);
 
@@ -399,12 +401,21 @@ ideintr(void)
     release(&idelock);
     return;
   }
+
   idequeue = b->qnext;
 
-  // Read data if needed.
-  if(!(b->flags & B_DIRTY) && idewait(1) >= 0)
-    insl(0x1f0, b->data, BSIZE/4);
+  if(DMA){
+    cprintf("from the disk? 0x%d\n",inb(dma_port + 2));
+    cprintf("test addr: %x\n",(uint)test_addr);
+    cprintf("test value: %x\n",(uint)*test_addr);
 
+    //Bit 0 (value 0x1) should be clear if the last PRD in the PRDT has been completed
+  }else{
+    // Read data if needed.
+    if(!(b->flags & B_DIRTY) && idewait(1) >= 0)
+      insl(0x1f0, b->data, BSIZE/4);
+  }
+  
   // Wake process waiting for this buf.
   b->flags |= B_VALID;
   b->flags &= ~B_DIRTY;
@@ -415,6 +426,7 @@ ideintr(void)
     idestart(idequeue);
 
   release(&idelock);
+  END:;
 }
 
 //PAGEBREAK!
@@ -453,5 +465,4 @@ iderw(struct buf *b)
   }
 
   release(&idelock);
-  cprintf("rw");
 }
