@@ -24,7 +24,10 @@
 #define IDE_CMD_RDMUL 0xc4
 #define IDE_CMD_WRMUL 0xc5
 
-
+// 1 enable dma, 0 use pio
+#define DMA 1
+#define DMA_WRITE 0xca
+#define DMA_READ 0xc8
 
 // A PRDT consists of one or more Physical Region Descriptors (PRDs), 
 // each of which describes the source or destination in memory for a transfer operation to be performed by the disk drive. 
@@ -50,13 +53,11 @@ void init_prdt_table(void) {
         prd_table[i].bytes = 0;
         prd_table[i].eot = 0;
     }
-    prd_table[i].eot = 0x80;
+    prd_table[i-1].eot = 0x80;
 }
 
 // port for bus master register
 static uint dma_port;
-
-void checkFunction(char bus, char device, char function);
 
 // idequeue points to the buf now being read/written to the disk.
 // idequeue->qnext points to the next buf to be processed.
@@ -80,6 +81,11 @@ idewait(int checkerr)
     return -1;
   return 0;
 }
+
+// #region pci_enumeration
+//vscode region folding (#region extension required)
+
+void checkFunction(char bus, char device, char function);
 
 //get word instead of byte
 static inline ushort
@@ -177,6 +183,9 @@ void checkBus(char bus) {
 //Under QEMU, the PCI IDE controller identifies as vendor ID 0x8086, device ID 0x7010. This will be found as function 1 of the 82371 chip in PCI bus 0, slot 1. 
 //The IDE controller itself will be operated in "compatibility mode", in which commands to perform disk operations are issued as if it were a legacy device on the ISA bus. 
 //This is the way that the stock IDE driver in xv6 expects to interact with the IDE controller. The IDE controller works in conjunction with the Bus Master DMA controller, which is also part of the 82371 chip. 
+static char bus1;
+static char dev1;
+static char fun1;
 void checkFunction(char bus, char device, char function) {
 
   ushort id = getVendorID(bus, device, function);
@@ -184,6 +193,9 @@ void checkFunction(char bus, char device, char function) {
     //get device id
     outl(0xcf8, 0x80000000 | (bus<<16) | (device<<11) | (function<<8) | 0x2);
     if(inw(0xcfc) == 0x7010){
+      bus1 = bus;
+      dev1 = device;
+      fun1 = function;
       //In order to engage DMA mode for IDE disk transfers, the DMA controller first has to be enabled. 
       //This is done by reading the command register at address 0x4 in the PCI configuration space for the Bus Master, 
       //setting bit 0 (value 0x1) and writing the updated value back to the command register. 
@@ -191,17 +203,39 @@ void checkFunction(char bus, char device, char function) {
       // The need for enabling the device in this way was not evident to me from the documents that I read, and it took quite awhile before I discovered it. 
       
       cprintf("vendor id: 0x%x    device id: 0x%x\n",id,inw(0xcfc));
-      cprintf("ide controller found! setup control bit and store base address of I/O port here!\n");
+      // cprintf("ide controller found! setup control bit and store base address of I/O port here!\n");
       outl(0xcf8, 0x80000000 | (bus<<16) | (device<<11) | (function<<8) | 0x4);
-      
+      //setting bit 0 of command register to 0x1
+      ushort command = inw(0xcfc);
+      outw(0xcfc,command | 0x1);
       //the value is 103 -> 100000011
       //https://wiki.osdev.org/PCI#Command_Register
-      cprintf("command reg: 0x%x\n",inw(0xcfc));
+      // cprintf("command reg: 0x%x\n",inw(0xcfc));
       
+      //check status
+      // outl(0xcf8, 0x80000000 | (bus<<16) | (device<<11) | (function<<8) | 0x6);
+      // cprintf("status: 0x%x\n",inw(0xcfc));
+      // 1010000000
+
       outl(0xcf8, 0x80000000 | (bus<<16) | (device<<11) | (function<<8) | 0x20);
-      dma_port = inl(0xcfc) & 0xfffffff0;
-      cprintf("io_port: 0x%x\n",dma_port);
-      //https://wiki.osdev.org/ATA/ATAPI_using_DMA
+      dma_port = inl(0xcfc) & 0xfffffffc;
+      cprintf("dma_port: 0x%x\n",dma_port);
+
+
+      // //debug
+      // uint i = 0;
+      // while(i < 0x3d){
+      //   outl(0xcf8, 0x80000000 | (bus<<16) | (device<<11) | (function<<8) | i);
+      //   cprintf("test: 0x%x\n",inl(0xcfc));
+      //   i+=0x4;
+      // }
+      
+
+      // outl(0xcf8, 0x80000000 | (bus<<16) | (device<<11) | (function<<8) | 0xb);
+      // cprintf("class code: 0x%x\n",inb(0xcfc));
+      // cprintf("status: 0x%x\n",inw(dma_port + 0x2));
+      // outl(0xcf8, 0x80000000 | (bus<<16) | (device<<11) | (function<<8) | 0xe);
+      // cprintf("header type: 0x%x\n",inb(0xcfc));
     }
   }
 
@@ -250,6 +284,8 @@ void checkAllBuses(void) {
      }
  }
 
+// #endregion
+
 //PCI Bus Device Enumeration #paragraph 4 and 5
 //In order to engage DMA mode for IDE disk transfers, the DMA controller first has to be enabled. 
 //This is done by reading the command register at address 0x4 in the PCI configuration space for the Bus Master, 
@@ -265,13 +301,16 @@ void
 ideinit(void)
 {
   
+  if(DMA){
+    checkAllBuses();
+    init_prdt_table();
+    cprintf("DMA setup complete\n");
+  }
+  // The rest doesn't deal with dma, it just set up the disks
+  // https://github.com/palladian1/xv6-annotated/blob/main/disk.md
   initlock(&idelock, "ide");
   ioapicenable(IRQ_IDE, ncpu - 1);
 
-  checkAllBuses();
-  init_prdt_table();
-  cprintf("ideinit complete\n");
-  // Old code
   int i;
   idewait(0);
   // Check if disk 1 is present
@@ -285,10 +324,7 @@ ideinit(void)
   
   // Switch back to disk 0.
   outb(0x1f6, 0xe0 | (0<<4));
-  // End old code
 }
-
-
 
 // Start the request for b.  Caller must hold idelock.
 static void
@@ -306,6 +342,7 @@ idestart(struct buf *b)
   if (sector_per_block > 7) panic("idestart");
 
   idewait(0);
+
   // load first half of parameters?
   outb(0x3f6, 0);  // generate interrupt
   outb(0x1f2, sector_per_block);  // number of sectors
@@ -313,11 +350,39 @@ idestart(struct buf *b)
   outb(0x1f4, (sector >> 8) & 0xff);
   outb(0x1f5, (sector >> 16) & 0xff);
   outb(0x1f6, 0xe0 | ((b->dev&1)<<4) | ((sector>>24)&0x0f));
-  if(b->flags & B_DIRTY){
-    outb(0x1f7, write_cmd);
-    outsl(0x1f0, b->data, BSIZE/4);
-  } else {
-    outb(0x1f7, read_cmd);
+
+  if(DMA){
+    //The "other half" of the parameters for the transfer must be set up for the DMA controller. 
+    //1. physical address for the data transfer -> setting up PRDT in memory and writing the physical address to the DMA controller PDTR (offsets 0x4-0x7 from the BAR4 base value)
+    prd_table[0].address = (uint)b->data;
+    prd_table[0].bytes = BSIZE/4;
+    outl(dma_port + 0x4, (uint)&prd_table);
+    //2. number of bytes to be transferred -> get it from buf???
+
+    //3. DMA read or DMA write -> setting the data transfer direction in Bit 3 (value 0x8) of the Bus Master command register (offset 0x0 from the base; bit 3 set for DMA writes, and clear for DMA reads);
+    // see below
+
+    //also clearing the interrupt bit (value 0x4) and error bit (0x2) in the Bus master status register (offset 0x2 from the base) by writing ones into these two bits. 
+    outb(dma_port + 0x2, 0x6);
+
+    // The disk transfer should be started by writing the appropriate command byte (0xc8 for DMA read, 0xca for DMA write) into the IDE controller command register (at port 0x1f7) 
+    // sector per block is always one, no need to setup RDMUL or WRMUL for DMA
+    if(b->flags & B_DIRTY){
+      outb(dma_port, 0x9);
+      outb(0x1f7, DMA_WRITE);
+    }else{
+      outb(dma_port, 0x1);
+      outb(0x1f7, DMA_READ);
+    }
+    //check status
+    cprintf("status: 0x%x\n",inb(dma_port+0x2));
+  }else{
+    if(b->flags & B_DIRTY){
+      outb(0x1f7, write_cmd);
+      outsl(0x1f0, b->data, BSIZE/4);
+    } else {
+      outb(0x1f7, read_cmd);
+    }
   }
 }
 
@@ -359,6 +424,7 @@ ideintr(void)
 void
 iderw(struct buf *b)
 {
+  //works for both pio and dma
   struct buf **pp;
 
   if(!holdingsleep(&b->lock))
@@ -377,14 +443,15 @@ iderw(struct buf *b)
   *pp = b;
 
   // Start disk if necessary.
-  if(idequeue == b)
+  if(idequeue == b){
     idestart(b);
+  }
 
   // Wait for request to finish.
   while((b->flags & (B_VALID|B_DIRTY)) != B_VALID){
     sleep(b, &idelock);
   }
 
-
   release(&idelock);
+  cprintf("rw");
 }
