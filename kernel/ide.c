@@ -25,7 +25,7 @@
 #define IDE_CMD_WRMUL 0xc5
 
 // 1 enable dma, 0 use pio
-#define DMA 0
+#define DMA 1
 #define DMA_WRITE 0xca
 #define DMA_READ 0xc8
 
@@ -196,7 +196,7 @@ void checkFunction(char bus, char device, char function) {
       //If you don't do this, then you won't ever get any interrupts back when you send a disk drive a "Read DMA" or "Write DMA" command.
       // The need for enabling the device in this way was not evident to me from the documents that I read, and it took quite awhile before I discovered it. 
       
-      cprintf("vendor id: 0x%x    device id: 0x%x\n",id,inw(0xcfc));
+      // cprintf("vendor id: 0x%x    device id: 0x%x\n",id,inw(0xcfc));
       // cprintf("ide controller found! setup control bit and store base address of I/O port here!\n");
       outl(0xcf8, 0x80000000 | (bus<<16) | (device<<11) | (function<<8) | 0x4);
       //setting bit 0 of command register to 0x1
@@ -208,7 +208,7 @@ void checkFunction(char bus, char device, char function) {
 
       outl(0xcf8, 0x80000000 | (bus<<16) | (device<<11) | (function<<8) | 0x20);
       dma_port = inl(0xcfc) & 0xfffffffc;
-      cprintf("dma_port: 0x%x\n",dma_port);
+      // cprintf("dma_port: 0x%x\n",dma_port);
 
       // //debug
       // uint i = 0;
@@ -285,7 +285,7 @@ ideinit(void)
   if(DMA){
     checkAllBuses();
     init_prdt_table();
-    cprintf("DMA setup complete\n");
+    // cprintf("DMA setup complete\n");
   }
   // The rest doesn't deal with dma, it just set up the disks
   // https://github.com/palladian1/xv6-annotated/blob/main/disk.md
@@ -342,15 +342,12 @@ idestart(struct buf *b)
     // cprintf("prdt addr: %x\n",(long unsigned int)prd_table[0].entry);
 
     //test transfer
-    uint i = 15;
-    cprintf("test addr before: %x\n",(long unsigned int)test_addr);
-    cprintf("prdt[0] before: %x\n",(long unsigned int)prd_table[0]);
     test_addr = kalloc();
-    prd_table[0] += (uint)(test_addr);
-    outl(dma_port + 0x4, (uint)(prd_table));
-    cprintf("prdt[0]: %x\n",(unsigned long long)prd_table[0]);
-    cprintf("test addr: %x\n",(uint)(&i));
-    cprintf("test value: %x\n",(uint)*(&i));
+    prd_table[0] += V2P(test_addr) + (0x2 << 8);
+    outl(dma_port + 0x4, V2P(prd_table));
+    // cprintf("prdt[0]: %x\n",(unsigned long)prd_table[]);
+    cprintf("test addr: %x\n",V2P(test_addr));
+    cprintf("test value: %x\n",*test_addr);
 
     //2. number of bytes to be transferred -> get it from buf???
 
@@ -358,7 +355,7 @@ idestart(struct buf *b)
     // see below
 
     //also clearing the interrupt bit (value 0x4) and error bit (0x2) in the Bus master status register (offset 0x2 from the base) by writing ones into these two bits. 
-    outb(dma_port + 0x2, 0x6);
+    outb(dma_port + 2, 0x6);
 
     // The disk transfer should be started by writing the appropriate command byte (0xc8 for DMA read, 0xca for DMA write) into the IDE controller command register (at port 0x1f7) 
     // sector per block is always one, no need to setup RDMUL or WRMUL for DMA
@@ -370,10 +367,6 @@ idestart(struct buf *b)
       outb(0x1f7, DMA_READ);
     }
     outb(dma_port, dma_command | 0x1);
-    //check status
-    cprintf("status: 0x%x\n",inb(dma_port + 2));
-    //debug read the prdt register
-    cprintf("prdt: %d\n",inl(dma_port +4));
   }else{
     test_addr = kalloc();
     if(b->flags & B_DIRTY){
@@ -405,11 +398,15 @@ ideintr(void)
   idequeue = b->qnext;
 
   if(DMA){
+
     cprintf("from the disk? 0x%d\n",inb(dma_port + 2));
-    cprintf("test addr: %x\n",(uint)test_addr);
-    cprintf("test value: %x\n",(uint)*test_addr);
+    cprintf("new test addr: %x\n",V2P(test_addr));
+    cprintf("new test value: %x\n",*test_addr);
 
     //Bit 0 (value 0x1) should be clear if the last PRD in the PRDT has been completed
+    //When an interrupt arrives (after the transfer is complete), respond by resetting the Start/Stop bit. 
+    ushort dma_command = inb(dma_port);
+    outb(dma_port, dma_command & 0xfe);
   }else{
     // Read data if needed.
     if(!(b->flags & B_DIRTY) && idewait(1) >= 0)
