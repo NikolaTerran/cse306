@@ -19,3 +19,29 @@ https://en.wikipedia.org/wiki/PCI_configuration_space
 
 
 physical region descriptor table:
+
+
+//from bing bot 
+```Here is an example of how to generate a PRDT in C :
+
+struct prdt {
+    uint32_t address;
+    uint32_t length;
+};
+
+struct prdt prdt_table[PRDT_ENTRIES];
+
+void init_prdt_table(void) {
+    int i;
+    for (i = 0; i < PRDT_ENTRIES; i++) {
+        prdt_table[i].address = 0;
+        prdt_table[i].length = 0;
+    }
+}
+This code initializes a PRDT table with zeroed out entries . You can modify this code to suit your needs.
+
+I hope this helps! Let me know if you have any other questions.```
+
+No sources were given. I'm not sure where did it rip the code from, but maybe the code'll work.
+
+Also, add check if entries in prdt is within 64 kb boundary?

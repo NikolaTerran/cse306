@@ -41,7 +41,7 @@ struct prd {
     ushort eot;
 };
 
-struct prd prd_table[PRDT_ENTRIES];
+struct prd __attribute__ ((aligned (4))) prd_table[PRDT_ENTRIES];
 
 void init_prdt_table(void) {
     int i;
