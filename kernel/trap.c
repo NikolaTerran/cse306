@@ -80,7 +80,6 @@ trap(struct trapframe *tf)
     lapiceoi();
     break;
   case T_IRQ0 + IRQ_IDE:
-    cprintf("intr");
     ideintr();
     lapiceoi();
     break;
