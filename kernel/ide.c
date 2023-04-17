@@ -25,7 +25,7 @@
 #define IDE_CMD_WRMUL 0xc5
 
 // 1 enable dma, 0 use pio
-#define DMA 1
+#define DMA 0
 #define DMA_READ 0xc8
 #define DMA_WRITE 0xca
 
@@ -221,7 +221,7 @@ void checkFunction(char bus, char device, char function) {
 
       outl(0xcf8, 0x80000000 | (bus<<16) | (device<<11) | (function<<8) | 0x20);
       dma_port = inl(0xcfc) & 0xfffffffc;
-      cprintf("dma_port: 0x%x\n",dma_port);
+      // cprintf("dma_port: 0x%x\n",dma_port);
 
       // outl(0xcf8, 0x80000000 | (bus<<16) | (device<<11) | (function<<8) | 0x9);
       // cprintf("bus master support: 0x%x\n",inb(0xcfc));
@@ -381,7 +381,7 @@ idestart(struct buf *b)
       outb(dma_port,  (dma_command & 0x7) | 0x1);
     }else{
       outb(dma_port,  dma_command | 0x8 | 0x1);
-      cprintf("send read to bus master!\n");
+      // cprintf("send read to bus master!\n");
     }
   
     idewait(0);

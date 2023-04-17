@@ -29,6 +29,7 @@ UPROGS=\
 	_part3test\
 	_infloop\
 	_l1quant\
+	_benchmark\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)
