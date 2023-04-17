@@ -88,7 +88,6 @@ idewait(int checkerr)
 }
 
 // #region pci_enumeration
-
 //vscode region folding (#region extension required)
 
 void checkFunction(char bus, char device, char function);
