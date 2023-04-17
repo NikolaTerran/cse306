@@ -1,4 +1,9 @@
+CSE306 HW4
 
+Exercise 1:
+Transmission of characters are now driven by interrupts, rather than a polling loop.
+
+There is a conditional compilation using #ifdef/#endif for debugging printout, in line 15 in the uart.c file. To turn it off, type "#undef DEBUG_PRINT". To turn it on, type "#define DEBUG_PRINT 1". The debugging printout traces calls to uartputc(), sleep(), wakeup() (which occurs every time there is free space in the output buffer), as well as the occurrence of transmitter and receiver interrupts. Note that once debugging printout is turned on, the characters being outputted to the terminal becomes quite slow, since cprintf() slows it down.
 
 
 Exercise 2:
@@ -18,30 +23,8 @@ also see the "software implementation" part of
 https://en.wikipedia.org/wiki/PCI_configuration_space
 
 
-physical region descriptor table:
+To enable DMA transfers, in line 28 of ide.c, set "#define DMA" to be 1. To enable PIO mode transfers, set "#define DMA" to be 0.
 
+Getting DMA to work in Bochs:
 
-//from bing bot 
-```Here is an example of how to generate a PRDT in C :
-
-struct prdt {
-    uint32_t address;
-    uint32_t length;
-};
-
-struct prdt prdt_table[PRDT_ENTRIES];
-
-void init_prdt_table(void) {
-    int i;
-    for (i = 0; i < PRDT_ENTRIES; i++) {
-        prdt_table[i].address = 0;
-        prdt_table[i].length = 0;
-    }
-}
-This code initializes a PRDT table with zeroed out entries . You can modify this code to suit your needs.
-
-I hope this helps! Let me know if you have any other questions.```
-
-No sources were given. I'm not sure where did it rip the code from, but maybe the code'll work.
-
-Also, add check if entries in prdt is within 64 kb boundary?
+It was challenging getting DMA to work in Bochs, mainly because the PCI configuration in QEMU was not compatible with Bochs. For example, under QEMU, the PCI IDE controller identifies as vendor ID 0x8086, device ID 0x7010. These were found in function 1 of the 82371 chip in PCI bus 0, slot 1. This is not the case with Bochs, since its PCI configuration space is different.

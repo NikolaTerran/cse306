@@ -12,6 +12,8 @@
 #include "proc.h"
 #include "x86.h"
 
+#undef DEBUG_PRINT
+
 
 #define COM1_PORT    0x3f8
 #define COM2_PORT    0x2f8
@@ -104,6 +106,9 @@ void uartstart() {
       poll_head1++;
       freespace1++;
       if (freespace1 > 0) {
+        #ifdef DEBUG_PRINT
+        cprintf("Free space in buf\n");
+        #endif
         wakeup(&freespace1);
       }
 
@@ -155,6 +160,9 @@ void uartstart() {
       poll_head2++;
       freespace2++;
       if (freespace2 > 0) {
+        #ifdef DEBUG_PRINT
+        cprintf("Free space in buf\n");
+        #endif
         wakeup(&freespace2);
       }
 
@@ -209,12 +217,18 @@ uartputc(int c)
   // Puts the character in an output buffer, rather than polling
   // the device and outputting it directly. 
 
+  #ifdef DEBUG_PRINT
+  cprintf("Inside uartputc\n");
+  #endif
+
   //If output buf is full, block process using sleep()
   if (inbound_port == COM1_PORT) {
     acquire(&output_buflock1);
     if (freespace1 == 0) { 
       //buffer currently full
+      #ifdef DEBUG_PRINT
       cprintf("Buffer full, sleeping on chan\n");
+      #endif
       sleep(&freespace1, &output_buflock1);
     }
     if (head1 == OUTPUT_BUF) {
@@ -236,7 +250,9 @@ uartputc(int c)
     acquire(&output_buflock2);
     if (freespace2 == 0) { 
       //buffer currently full
+      #ifdef DEBUG_PRINT
       cprintf("Buffer full, sleeping on chan\n");
+      #endif
       sleep(&freespace2, &output_buflock2);
     }
     if (head2 == OUTPUT_BUF) {
@@ -479,12 +495,16 @@ uartintr(int com)
   if (com==1) {
 
     if (inb(COM1_PORT+2) & 0x2) {
+      #ifdef DEBUG_PRINT
       cprintf("transmitter interrupt\n");
+      #endif
       busy1=0;
     }
 
     if (inb(COM1_PORT+2) & 0x4) {
+      #ifdef DEBUG_PRINT
       cprintf("receiver interrupt\n");
+      #endif
     }
 
     acquire(&uartlock1.lock);
@@ -530,12 +550,16 @@ uartintr(int com)
   //COM2 requested an interrupt
   else if (com==2) {
     if (inb(COM2_PORT+2) & 0x2) {
+      #ifdef DEBUG_PRINT
       cprintf("transmitter interrupt\n");
+      #endif
       busy2=0;
     }
 
     if (inb(COM2_PORT+2) & 0x4) {
+      #ifdef DEBUG_PRINT
       cprintf("receiver interrupt\n");
+      #endif
     }
 
     acquire(&uartlock2.lock);
