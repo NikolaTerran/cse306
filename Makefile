@@ -37,7 +37,7 @@ print: xv6.pdf
 
 bochs : $(USER)/fs.img xv6.img
 	if [ ! -e .bochsrc ]; then ln -s dot-bochsrc .bochsrc; fi
-	/opt/bochs/bin/bochs -q
+	/opt/bochs/bin/bochs -q -dbglog bochsdb_log -log bochs_log 
 
 # If the makefile can't find QEMU, specify its path here
 # QEMU = qemu-system-i386

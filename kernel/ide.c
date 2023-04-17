@@ -26,8 +26,8 @@
 
 // 1 enable dma, 0 use pio
 #define DMA 1
-#define DMA_WRITE 0xca
 #define DMA_READ 0xc8
+#define DMA_WRITE 0xca
 
 // A PRDT consists of one or more Physical Region Descriptors (PRDs), 
 // each of which describes the source or destination in memory for a transfer operation to be performed by the disk drive. 
@@ -38,16 +38,27 @@
 
 #define PRDT_ENTRIES 1
 
-static unsigned long long __attribute__ ((aligned (4))) *prd_table;
 static char* test_addr;
 
+typedef struct {
+    uint addr;
+    ushort bytes;
+    ushort eot;
+} prd_entry;
+
+prd_entry prd_table[PRDT_ENTRIES] __attribute__((aligned(4)));
+
+// Set up PRD table
+
 void init_prdt_table(void) {
-    prd_table = (unsigned long long*)kalloc();
+    // prd_table = (unsigned long long*)kalloc();
     int i;
     for (i = 0; i < PRDT_ENTRIES; i++) {
-        prd_table[i] = 0;
+        prd_table[0].addr = 0;
+        prd_table[0].bytes = 0;
+        prd_table[0].eot = 0;
     }
-    prd_table[i-1] = 0x8000000000000000;
+    prd_table[i-1].eot = 0x8000;
 }
 
 // port for bus master register
@@ -77,6 +88,7 @@ idewait(int checkerr)
 }
 
 // #region pci_enumeration
+
 //vscode region folding (#region extension required)
 
 void checkFunction(char bus, char device, char function);
@@ -178,18 +190,18 @@ void checkBus(char bus) {
 //The IDE controller itself will be operated in "compatibility mode", in which commands to perform disk operations are issued as if it were a legacy device on the ISA bus. 
 //This is the way that the stock IDE driver in xv6 expects to interact with the IDE controller. The IDE controller works in conjunction with the Bus Master DMA controller, which is also part of the 82371 chip. 
 static char bus1;
-static char dev1;
-static char fun1;
+static char device1;
+static char function1;
 void checkFunction(char bus, char device, char function) {
 
   ushort id = getVendorID(bus, device, function);
   if(id == 0x8086){
     //get device id
-    outl(0xcf8, 0x80000000 | (bus<<16) | (device<<11) | (function<<8) | 0x2);
+    outl(0xcf8, (uint)((bus << 16) | (device << 11) | (function << 8) | 0x2 | ((uint)0x80000000)));
     if(inw(0xcfc) == 0x7010){
       bus1 = bus;
-      dev1 = device;
-      fun1 = function;
+      device1 = device;
+      function1 = function;
       //In order to engage DMA mode for IDE disk transfers, the DMA controller first has to be enabled. 
       //This is done by reading the command register at address 0x4 in the PCI configuration space for the Bus Master, 
       //setting bit 0 (value 0x1) and writing the updated value back to the command register. 
@@ -201,15 +213,21 @@ void checkFunction(char bus, char device, char function) {
       outl(0xcf8, 0x80000000 | (bus<<16) | (device<<11) | (function<<8) | 0x4);
       //setting bit 0 of command register to 0x1
       ushort command = inw(0xcfc);
-      outw(0xcfc,command | 0x1);
+      outw(0xcfc,command | 0x5);
       //the value is 103 -> 100000011
       //https://wiki.osdev.org/PCI#Command_Register
       // cprintf("command reg: 0x%x\n",inw(0xcfc));
 
+      // outl(0xcf8, 0x80000000 | (bus<<16) | (device<<11) | (function<<8) | 0x4);
+      // cprintf("command reg:%x\n",inw(0xcfc));
+
       outl(0xcf8, 0x80000000 | (bus<<16) | (device<<11) | (function<<8) | 0x20);
       dma_port = inl(0xcfc) & 0xfffffffc;
-      // cprintf("dma_port: 0x%x\n",dma_port);
+      cprintf("dma_port: 0x%x\n",dma_port);
 
+      // outl(0xcf8, 0x80000000 | (bus<<16) | (device<<11) | (function<<8) | 0x9);
+      // cprintf("bus master support: 0x%x\n",inb(0xcfc));
+      
       // //debug
       // uint i = 0;
       // while(i < 0x3d){
@@ -285,7 +303,6 @@ ideinit(void)
   if(DMA){
     checkAllBuses();
     init_prdt_table();
-    // cprintf("DMA setup complete\n");
   }
   // The rest doesn't deal with dma, it just set up the disks
   // https://github.com/palladian1/xv6-annotated/blob/main/disk.md
@@ -322,7 +339,104 @@ idestart(struct buf *b)
 
   if (sector_per_block > 7) panic("idestart");
 
-  idewait(0);
+  
+
+  if(DMA){
+
+    //select drive
+    outb(0x1f6, 0xe0 | ((b->dev&1)<<4) | ((sector>>24)&0x0f));
+
+    char dma_command = inb(dma_port);
+    // clear command bit
+    outb(dma_port, 0);
+
+    // clear interrupt and error bit
+    char bus_stat = inb(dma_port + 0x2);
+    outb(dma_port + 0x2, bus_stat | 0x2 | 0x4);
+
+    //test transfer
+    test_addr = kalloc();
+    prd_table[0].addr = V2P(test_addr);
+    prd_table[0].bytes = 512;
+    prd_table[0].eot = 0x8000;
+    outl(dma_port + 0x4, V2P(prd_table));
+
+    idewait(0);
+
+    // load first half of parameters?
+    outb(0x3f6, 0);  // generate interrupt
+    //feature /error bit?
+    outb(0x1f2, sector_per_block);  // number of sectors
+    outb(0x1f3, sector & 0xff);
+    outb(0x1f4, (sector >> 8) & 0xff);
+    outb(0x1f5, (sector >> 16) & 0xff);
+  
+
+    if(b->flags & B_DIRTY){
+      outb(0x1f7, DMA_WRITE);
+      
+    }else{
+      outb(0x1f7, DMA_READ);
+    }
+    
+    //wait for drq bit?
+
+    if(b->flags & B_DIRTY){
+      outb(dma_port,  (dma_command & 0x7) | 0x1);
+    }else{
+      outb(dma_port,  dma_command | 0x8 | 0x1);
+      cprintf("send read to bus master!\n");
+    }
+  
+    idewait(0);
+  
+  
+  
+
+    //The "other half" of the parameters for the transfer must be set up for the DMA controller. 
+    //1. physical address for the data transfer -> setting up PRDT in memory and writing the physical address to the DMA controller PDTR (offsets 0x4-0x7 from the BAR4 base value)
+    
+    // prd_table[0] += (uint)&(b->data);
+    // outl(dma_port + 0x4, (long unsigned int)prd_table);
+
+    // cprintf("prdt addr: %x\n",(long unsigned int)prd_table[0].entry);
+
+    
+    
+    // cprintf("prdt addr from port4: %x\n",inb(dma_port + 0x4));
+    // cprintf("prdt addr from port5: %x\n",inb(dma_port + 0x5));
+    // cprintf("prdt addr from port6: %x\n",inb(dma_port + 0x6));
+    // cprintf("prdt addr from port7: %x\n",inb(dma_port + 0x7));
+    // cprintf("phy4: %x\n",(uchar) (phy_addr >> 0));
+    // cprintf("phy5: %x\n",(uchar) (phy_addr >> 8));
+    // cprintf("phy6: %x\n",(uchar) (phy_addr >> 16));
+    // cprintf("phy7: %x\n",(uchar) (phy_addr >> 24));
+    // cprintf("prdt addr: %x\n",phy_addr);
+    // cprintf("test addr: %x\n",V2P(test_addr));
+    // cprintf("test value: %x\n",*test_addr);
+    
+
+    //2. number of bytes to be transferred -> get it from buf???
+
+    //3. DMA read or DMA write -> setting the data transfer direction in Bit 3 (value 0x8) of the Bus Master command register (offset 0x0 from the base; bit 3 set for DMA writes, and clear for DMA reads);
+    // see below
+
+    //also clearing the interrupt bit (value 0x4) and error bit (0x2) in the Bus master status register (offset 0x2 from the base) by writing ones into these two bits. 
+    // char dma_status = inb(dma_port + 2);
+    
+
+    // cprintf("dma status: %x\n",inb(dma_port + 0x2));
+
+    // The disk transfer should be started by writing the appropriate command byte (0xc8 for DMA read, 0xca for DMA write) into the IDE controller command register (at port 0x1f7) 
+    // sector per block is always one, no need to setup RDMUL or WRMUL for DMA
+    
+    
+
+    
+    
+  }else{
+
+    idewait(0);
 
   // load first half of parameters?
   outb(0x3f6, 0);  // generate interrupt
@@ -332,42 +446,6 @@ idestart(struct buf *b)
   outb(0x1f5, (sector >> 16) & 0xff);
   outb(0x1f6, 0xe0 | ((b->dev&1)<<4) | ((sector>>24)&0x0f));
 
-  if(DMA){
-    //The "other half" of the parameters for the transfer must be set up for the DMA controller. 
-    //1. physical address for the data transfer -> setting up PRDT in memory and writing the physical address to the DMA controller PDTR (offsets 0x4-0x7 from the BAR4 base value)
-    
-    // prd_table[0] += (uint)&(b->data);
-    // outl(dma_port + 0x4, (long unsigned int)prd_table);
-
-    // cprintf("prdt addr: %x\n",(long unsigned int)prd_table[0].entry);
-
-    //test transfer
-    test_addr = kalloc();
-    prd_table[0] += V2P(test_addr) + (0x2 << 8);
-    outl(dma_port + 0x4, V2P(prd_table));
-    // cprintf("prdt[0]: %x\n",(unsigned long)prd_table[]);
-    cprintf("test addr: %x\n",V2P(test_addr));
-    cprintf("test value: %x\n",*test_addr);
-
-    //2. number of bytes to be transferred -> get it from buf???
-
-    //3. DMA read or DMA write -> setting the data transfer direction in Bit 3 (value 0x8) of the Bus Master command register (offset 0x0 from the base; bit 3 set for DMA writes, and clear for DMA reads);
-    // see below
-
-    //also clearing the interrupt bit (value 0x4) and error bit (0x2) in the Bus master status register (offset 0x2 from the base) by writing ones into these two bits. 
-    outb(dma_port + 2, 0x6);
-
-    // The disk transfer should be started by writing the appropriate command byte (0xc8 for DMA read, 0xca for DMA write) into the IDE controller command register (at port 0x1f7) 
-    // sector per block is always one, no need to setup RDMUL or WRMUL for DMA
-    ushort dma_command = inb(dma_port);
-    if(b->flags & B_DIRTY){
-      outb(dma_port,  dma_command | 0x8);
-      outb(0x1f7, DMA_WRITE);
-    }else{
-      outb(0x1f7, DMA_READ);
-    }
-    outb(dma_port, dma_command | 0x1);
-  }else{
     test_addr = kalloc();
     if(b->flags & B_DIRTY){
       outb(0x1f7, write_cmd);
@@ -399,13 +477,15 @@ ideintr(void)
 
   if(DMA){
 
-    cprintf("from the disk? 0x%d\n",inb(dma_port + 2));
-    cprintf("new test addr: %x\n",V2P(test_addr));
-    cprintf("new test value: %x\n",*test_addr);
+    if(!(b->flags & B_DIRTY) && idewait(1) >= 0){
+      cprintf("from the disk? 0x%d\n",inb(dma_port + 2));
+      cprintf("new test addr: %x\n",V2P(test_addr));
+      cprintf("new test value: %x\n",*test_addr);
+    }
 
     //Bit 0 (value 0x1) should be clear if the last PRD in the PRDT has been completed
     //When an interrupt arrives (after the transfer is complete), respond by resetting the Start/Stop bit. 
-    ushort dma_command = inb(dma_port);
+    char dma_command = inb(dma_port);
     outb(dma_port, dma_command & 0xfe);
   }else{
     // Read data if needed.
