@@ -38,7 +38,7 @@
 
 #define PRDT_ENTRIES 1
 
-static char* test_addr;
+// static char* test_addr;
 
 typedef struct {
     uint addr;
@@ -76,8 +76,7 @@ static void idestart(struct buf*);
 
 // Wait for IDE disk to become ready.
 static int
-idewait(int checkerr)
-{
+idewait(int checkerr){
   int r;
 
   while(((r = inb(0x1f7)) & (IDE_BSY|IDE_DRDY)) != IDE_DRDY)
@@ -338,8 +337,6 @@ idestart(struct buf *b)
 
   if (sector_per_block > 7) panic("idestart");
 
-  
-
   if(DMA){
 
     //select drive
@@ -354,8 +351,7 @@ idestart(struct buf *b)
     outb(dma_port + 0x2, bus_stat | 0x2 | 0x4);
 
     //test transfer
-    test_addr = kalloc();
-    prd_table[0].addr = V2P(test_addr);
+    prd_table[0].addr = V2P(b->data);
     prd_table[0].bytes = 512;
     prd_table[0].eot = 0x8000;
     outl(dma_port + 0x4, V2P(prd_table));
@@ -379,6 +375,7 @@ idestart(struct buf *b)
     }
     
     //wait for drq bit?
+    idewait(0);
 
     if(b->flags & B_DIRTY){
       outb(dma_port,  (dma_command & 0x7) | 0x1);
@@ -437,15 +434,14 @@ idestart(struct buf *b)
 
     idewait(0);
 
-  // load first half of parameters?
-  outb(0x3f6, 0);  // generate interrupt
-  outb(0x1f2, sector_per_block);  // number of sectors
-  outb(0x1f3, sector & 0xff);
-  outb(0x1f4, (sector >> 8) & 0xff);
-  outb(0x1f5, (sector >> 16) & 0xff);
-  outb(0x1f6, 0xe0 | ((b->dev&1)<<4) | ((sector>>24)&0x0f));
+    // load first half of parameters?
+    outb(0x3f6, 0);  // generate interrupt
+    outb(0x1f2, sector_per_block);  // number of sectors
+    outb(0x1f3, sector & 0xff);
+    outb(0x1f4, (sector >> 8) & 0xff);
+    outb(0x1f5, (sector >> 16) & 0xff);
+    outb(0x1f6, 0xe0 | ((b->dev&1)<<4) | ((sector>>24)&0x0f));
 
-    test_addr = kalloc();
     if(b->flags & B_DIRTY){
       outb(0x1f7, write_cmd);
       outsl(0x1f0, b->data, BSIZE/4);
@@ -476,11 +472,11 @@ ideintr(void)
 
   if(DMA){
 
-    if(!(b->flags & B_DIRTY) && idewait(1) >= 0){
-      cprintf("from the disk? 0x%d\n",inb(dma_port + 2));
-      cprintf("new test addr: %x\n",V2P(test_addr));
-      cprintf("new test value: %x\n",*test_addr);
-    }
+    // if(!(b->flags & B_DIRTY) && idewait(1) >= 0){
+    //   // cprintf("from the disk? 0x%d\n",inb(dma_port + 2));
+    //   // cprintf("new test addr: %x\n",V2P(test_addr));
+    //   // cprintf("new test value: %x\n",*test_addr);
+    // }
 
     //Bit 0 (value 0x1) should be clear if the last PRD in the PRDT has been completed
     //When an interrupt arrives (after the transfer is complete), respond by resetting the Start/Stop bit. 
