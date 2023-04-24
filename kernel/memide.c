@@ -27,7 +27,7 @@ ideinit(void)
 
 // Interrupt handler.
 void
-ideintr(void)
+ideintr(uint no_op1, uint no_op2)
 {
   // no-op
 }

@@ -34,6 +34,13 @@
 #define IRQ_COM1         4
 #define IRQ_COM2         3
 #define IRQ_IDE         14
+#define IRQ_IDE2		15	// ADDED: interrupts for second IDE controller
 #define IRQ_ERROR       19
 #define IRQ_SPURIOUS    31  // Was in original xv6, not observed
 #define IRQ_SPURIOUS1   87  // Bochs produces this on first pushf
+
+// For primary and secondary IDE controllers:
+#define BASE_ADDR1		0x1f0
+#define BASE_ADDR2		0x3f6
+#define BASE_ADDR3		0x170
+#define BASE_ADDR4		0x376

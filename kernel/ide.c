@@ -71,15 +71,15 @@ static uint dma_port;
 static struct spinlock idelock;
 static struct buf *idequeue;
 
-static int havedisk1;
-static void idestart(struct buf*);
+// static int havedisk1; //old: only assumed 2 disks
+static void idestart(struct buf*, uint, uint);
 
 // Wait for IDE disk to become ready.
 static int
-idewait(int checkerr){
+idewait(int checkerr, uint ba){
   int r;
 
-  while(((r = inb(0x1f7)) & (IDE_BSY|IDE_DRDY)) != IDE_DRDY)
+  while(((r = inb(ba + 7)) & (IDE_BSY|IDE_DRDY)) != IDE_DRDY)
     ;
   if(checkerr && (r & (IDE_DF|IDE_ERR)) != 0)
     return -1;
@@ -294,6 +294,9 @@ void checkAllBuses(void) {
 //The way you find out the base address of the I/O ports is by reading BAR4 (Base Address Register 4), which is a 32-bit field of the PCI configuration space for the device. 
 //The address you obtain in this way will always be four-byte aligned, but Bit 0 (value 0x1) is used to indicate whether the address is in I/O port space (bit 0 == 0x1) or memory mapped (bit 0 == 0x0). 
 //You must mask out (i.e. set to zero) the least significant four bits of the value read from BAR4 to get the correct base address. 
+#define NUM_OF_DISKS 4
+static int havedisk[NUM_OF_DISKS];
+
 void
 ideinit(void)
 {
@@ -305,26 +308,55 @@ ideinit(void)
   // The rest doesn't deal with dma, it just set up the disks
   // https://github.com/palladian1/xv6-annotated/blob/main/disk.md
   initlock(&idelock, "ide");
-  ioapicenable(IRQ_IDE, ncpu - 1);
-
   int i;
-  idewait(0);
+
+  // Primary IDE controller I/O ports: 0x1F0 - 0x1FF and 0x3F6 - 0x3F7
+  // Secondary IDE controller I/O ports: 0x170 - 0x17F and 0x376 - 0x377
+
+  // for IDE1 (primary IDE controller):
+  ioapicenable(IRQ_IDE, ncpu - 1);
+  idewait(0, 0x1f0);
+
+  havedisk[0] = 1;
+
   // Check if disk 1 is present
   outb(0x1f6, 0xe0 | (1<<4));
   for(i=0; i<1000; i++){
     if(inb(0x1f7) != 0){
-      havedisk1 = 1;
+      havedisk[1] = 1;
       break;
     }
   }
-  
+
+  // for IDE2 (secondary IDE controller):
+  ioapicenable(IRQ_IDE2, ncpu - 1);
+  idewait(0, 0x170);
+
+  // Check if disk 2 is present
+  outb(0x176, 0xe0 | (0<<4));
+  for(i=0; i<1000; i++){
+    if(inb(0x177) != 0){
+      havedisk[2] = 1;
+      break;
+    }
+  }
+
+  // Check if disk 3 is present
+  outb(0x176, 0xe0 | (1<<4));
+  for(i=0; i<1000; i++){
+    if(inb(0x177) != 0){
+      havedisk[3] = 1;
+      break;
+    }
+  }
+
   // Switch back to disk 0.
   outb(0x1f6, 0xe0 | (0<<4));
 }
 
 // Start the request for b.  Caller must hold idelock.
 static void
-idestart(struct buf *b)
+idestart(struct buf *b, uint base_addr1, uint base_addr2)
 {
   if(b == 0)
     panic("idestart");
@@ -356,7 +388,7 @@ idestart(struct buf *b)
     prd_table[0].eot = 0x8000;
     outl(dma_port + 0x4, V2P(prd_table));
 
-    idewait(0);
+    idewait(0, 0x1f0);
 
     // load first half of parameters?
     outb(0x3f6, 0);  // generate interrupt
@@ -375,7 +407,7 @@ idestart(struct buf *b)
     }
     
     //wait for drq bit?
-    idewait(0);
+    idewait(0, 0x1f0);
 
     if(b->flags & B_DIRTY){
       outb(dma_port,  (dma_command & 0x7) | 0x1);
@@ -384,7 +416,7 @@ idestart(struct buf *b)
       // cprintf("send read to bus master!\n");
     }
   
-    idewait(0);
+    idewait(0, 0x1f0);
   
   
   
@@ -426,34 +458,31 @@ idestart(struct buf *b)
     // The disk transfer should be started by writing the appropriate command byte (0xc8 for DMA read, 0xca for DMA write) into the IDE controller command register (at port 0x1f7) 
     // sector per block is always one, no need to setup RDMUL or WRMUL for DMA
     
-    
-
-    
-    
   }else{
+    //Programmed I/O
 
-    idewait(0);
+    idewait(0, base_addr1);
 
     // load first half of parameters?
-    outb(0x3f6, 0);  // generate interrupt
-    outb(0x1f2, sector_per_block);  // number of sectors
-    outb(0x1f3, sector & 0xff);
-    outb(0x1f4, (sector >> 8) & 0xff);
-    outb(0x1f5, (sector >> 16) & 0xff);
-    outb(0x1f6, 0xe0 | ((b->dev&1)<<4) | ((sector>>24)&0x0f));
+    outb(base_addr2, 0);  // generate interrupt
+    outb(base_addr1+2, sector_per_block);  // number of sectors
+    outb(base_addr1+3, sector & 0xff);
+    outb(base_addr1+4, (sector >> 8) & 0xff);
+    outb(base_addr1+5, (sector >> 16) & 0xff);
+    outb(base_addr1+6, 0xe0 | ((b->dev&1)<<4) | ((sector>>24)&0x0f));
 
     if(b->flags & B_DIRTY){
-      outb(0x1f7, write_cmd);
-      outsl(0x1f0, b->data, BSIZE/4);
+      outb(base_addr1+7, write_cmd);
+      outsl(base_addr1, b->data, BSIZE/4);
     } else {
-      outb(0x1f7, read_cmd);
+      outb(base_addr1+7, read_cmd);
     }
   }
 }
 
 // Interrupt handler.
 void
-ideintr(void)
+ideintr(uint base_addr1, uint base_addr2)
 {
   if(DMA && !(inb(dma_port + 2) & 0x4)){
     goto END;
@@ -484,8 +513,8 @@ ideintr(void)
     outb(dma_port, dma_command & 0xfe);
   }else{
     // Read data if needed.
-    if(!(b->flags & B_DIRTY) && idewait(1) >= 0)
-      insl(0x1f0, b->data, BSIZE/4);
+    if(!(b->flags & B_DIRTY) && idewait(1, base_addr1) >= 0)
+      insl(base_addr1, b->data, BSIZE/4);
   }
   
   // Wake process waiting for this buf.
@@ -495,7 +524,7 @@ ideintr(void)
 
   // Start disk on next buf in queue.
   if(idequeue != 0)
-    idestart(idequeue);
+    idestart(idequeue, base_addr1, base_addr2);
 
   release(&idelock);
   END:;
@@ -515,8 +544,11 @@ iderw(struct buf *b)
     panic("iderw: buf not locked");
   if((b->flags & (B_VALID|B_DIRTY)) == B_VALID)
     panic("iderw: nothing to do");
-  if(b->dev != 0 && !havedisk1)
-    panic("iderw: ide disk 1 not present");
+
+  for (uint i=0; i < NUM_OF_DISKS; i++) {
+    if(b->dev != 0 && !havedisk[i])
+      panic("iderw: ide disk i not present");
+  }
 
   acquire(&idelock);  //DOC:acquire-lock
 
@@ -528,7 +560,11 @@ iderw(struct buf *b)
 
   // Start disk if necessary.
   if(idequeue == b){
-    idestart(b);
+    if (b->dev == 0 || b->dev == 1)
+      idestart(b, BASE_ADDR1, BASE_ADDR2);
+    
+    if (b->dev == 2 || b->dev == 3)
+      idestart(b, BASE_ADDR3, BASE_ADDR4);
   }
 
   // Wait for request to finish.

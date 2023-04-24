@@ -80,12 +80,23 @@ trap(struct trapframe *tf)
     lapiceoi();
     break;
   case T_IRQ0 + IRQ_IDE:
-    ideintr();
+    // cprintf("IDE1 trap");
+    ideintr(BASE_ADDR1, BASE_ADDR2);
     lapiceoi();
     break;
-  case T_IRQ0 + IRQ_IDE+1:
+  /* 
+    // Commented this out. Don't know if we would have to comment it back later.
+    case T_IRQ0 + IRQ_IDE+1:
     // Bochs generates spurious IDE1 interrupts.
+    break; */
+
+  //HW5
+  case T_IRQ0 + IRQ_IDE2:
+    // cprintf("IDE2 trap");
+    ideintr(BASE_ADDR3, BASE_ADDR4);
+    lapiceoi();
     break;
+
   case T_IRQ0 + IRQ_KBD:
     kbdintr();
     lapiceoi();
