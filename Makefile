@@ -81,7 +81,7 @@ CPUS := 2
 endif
 QEMUOPTS += -drive file=$(USER)/fs.img,index=1,media=disk,format=raw \
   -drive file=xv6.img,index=0,media=disk,format=raw -drive file=disk2.img,index=2,format=raw \
-  -drive file=disk3.img,index=3,format=raw -smp $(CPUS) -m 512 $(QEMUEXTRA) 
+  -drive file=unix-v5-boot.img,index=3,media=disk,format=raw -smp $(CPUS) -m 512 $(QEMUEXTRA) 
 # QEMUOPTS += -audiodev pa,id=snd0 -machine pcspk-audiodev=snd0
 QEMUOPTS += -soundhw pcspk 
 

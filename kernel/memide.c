@@ -11,6 +11,7 @@
 #include "spinlock.h"
 #include "sleeplock.h"
 #include "fs.h"
+#include "ufs.h"
 #include "buf.h"
 
 extern uchar _binary_fs_img_start[], _binary_fs_img_size[];

@@ -9,6 +9,7 @@ struct spinlock;
 struct sleeplock;
 struct stat;
 struct superblock;
+struct usuperblock;
 
 // bio.c
 void            binit(void);
@@ -52,6 +53,25 @@ struct inode*   nameiparent(char*, char*);
 int             readi(struct inode*, char*, uint, uint);
 void            stati(struct inode*, struct stat*);
 int             writei(struct inode*, char*, uint, uint);
+
+// ufs.c
+void            ureadsb(int dev, struct usuperblock *sb);
+int             udirlink(struct inode*, char*, uint);
+struct inode*   udirlookup(struct inode*, char*, uint*);
+struct inode*   uialloc(uint, short);
+struct inode*   uidup(struct inode*);
+void            uiinit(int dev);
+void            uilock(struct inode*);
+void            uiput(struct inode*);
+void            uiunlock(struct inode*);
+void            uiunlockput(struct inode*);
+void            uiupdate(struct inode*);
+int             unamecmp(const char*, const char*);
+struct inode*   unamei(char*);
+struct inode*   unameiparent(char*, char*);
+int             ureadi(struct inode*, char*, uint, uint);
+void            ustati(struct inode*, struct stat*);
+int             uwritei(struct inode*, char*, uint, uint);
 
 // ide.c
 void            ideinit(void);

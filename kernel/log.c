@@ -4,6 +4,7 @@
 #include "spinlock.h"
 #include "sleeplock.h"
 #include "fs.h"
+#include "ufs.h"
 #include "buf.h"
 
 // Simple logging that allows concurrent FS system calls.

@@ -7,6 +7,7 @@
 #include "spinlock.h"
 #include "sleeplock.h"
 #include "fs.h"
+#include "ufs.h"
 #include "file.h"
 #include "mmu.h"
 #include "proc.h"

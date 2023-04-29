@@ -11,6 +11,7 @@
 #include "spinlock.h"
 #include "sleeplock.h"
 #include "fs.h"
+#include "ufs.h"
 #include "buf.h"
 
 #define SECTOR_SIZE   512
