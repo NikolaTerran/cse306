@@ -21,6 +21,20 @@ struct usuperblock {
   uint bmapstart;    // Block number of first free map block
 };
 
+//v5 code but i changed it to use correct type
+struct  filsys {
+  ushort s_isize;      // number of sectors of inode
+  ushort s_fsize;    // number of disk sectors
+  ushort s_nfree;    //number of valid entries in s_free array
+  ushort s_ninode;   //number of valid entries in the s_inode array
+  ushort  s_free[100];  //sector numbers of free sector
+  char    s_flock;  // ?
+  char    s_ilock;  // ?
+  char    s_fmod;  // ?
+  char    s_ronly; // ?
+  ushort     s_time[2]; // unix time?
+};
+
 #define UNDIRECT 12
 #define UNINDIRECT (UBSIZE / sizeof(uint))
 #define UMAXFILE (UNDIRECT + UNINDIRECT)
@@ -34,6 +48,10 @@ struct udinode {
   uint size;            // Size of file (bytes)
   uint addrs[UNDIRECT+1];   // Data block addresses
 };
+
+
+
+
 
 // Inodes per block.
 #define UIPB           (UBSIZE / sizeof(struct udinode))

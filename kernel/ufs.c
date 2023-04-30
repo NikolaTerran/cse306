@@ -26,8 +26,11 @@ static void itrunc(struct inode*);
 // there should be one superblock per disk device, but we run with
 // only one device
 struct usuperblock usb; 
+// this holds the actual superblock info
+struct filsys fs;
 
 // Read the super block.
+// not used, see readfilsys
 void
 ureadsb(int dev, struct usuperblock *usb)
 {
@@ -35,6 +38,14 @@ ureadsb(int dev, struct usuperblock *usb)
 
   bp = bread(dev, 1);
   memmove(usb, bp->data, sizeof(*usb));
+  brelse(bp);
+}
+
+void
+readfilsys(int dev, struct filsys *fs){
+  struct buf *bp;
+  bp = bread(dev, 1);
+  memmove(fs, bp->data, sizeof(*fs));
   brelse(bp);
 }
 
@@ -169,6 +180,18 @@ struct {
   struct inode inode[NINODE];
 } uicache;
 
+
+//https://www.geeksforgeeks.org/bit-manipulation-swap-endianness-of-a-number/
+ushort endian_swap(ushort value){
+    ushort leftmost_byte = (value & 0x00FF) >> 0;
+    ushort left_middle_byle = (value & 0xFF00) >> 8;
+
+    leftmost_byte <<= 8;
+    left_middle_byle >>= 8;
+ 
+    return (leftmost_byte | left_middle_byle);
+}
+
 void
 uiinit(int dev)
 {
@@ -179,11 +202,9 @@ uiinit(int dev)
     initsleeplock(&uicache.inode[i].lock, "inode");
   }
 
-  ureadsb(dev, &usb);
-  cprintf("usb: size %d nblocks %d ninodes %d nlog %d logstart %d\
- inodestart %d bmap start %d\n", usb.size, usb.nblocks,
-          usb.ninodes, usb.nlog, usb.logstart, usb.inodestart,
-          usb.bmapstart);
+  readfilsys(dev, &fs);
+  cprintf("filsys: isize %d fsizee %d nfree %d ninode %d ronly %d\n", fs.s_isize, fs.s_fsize,
+          fs.s_nfree, fs.s_ninode, fs.s_ronly);
 }
 
 static struct inode* iget(uint dev, uint inum);
