@@ -329,6 +329,9 @@ ideinit(void)
     }
   }
 
+  // Switch back to disk 0.
+  outb(0x1f6, 0xe0 | (0<<4));
+
   // for IDE2 (secondary IDE controller):
   ioapicenable(IRQ_IDE2, ncpu - 1);
   idewait(0, 0x170);
@@ -351,8 +354,9 @@ ideinit(void)
     }
   }
 
-  // Switch back to disk 0.
-  outb(0x1f6, 0xe0 | (0<<4));
+  // Switch back to disk 2.
+  outb(0x176, 0xe0 | (0<<4));
+
 }
 
 // Start the request for b.  Caller must hold idelock.
@@ -561,11 +565,13 @@ iderw(struct buf *b)
 
   // Start disk if necessary.
   if(idequeue == b){
-    if (b->dev == 0 || b->dev == 1)
+    if (b->dev == 0 || b->dev == 1) {
       idestart(b, BASE_ADDR1, BASE_ADDR2);
+    }
     
-    if (b->dev == 2 || b->dev == 3)
+    if (b->dev == 2 || b->dev == 3) {
       idestart(b, BASE_ADDR3, BASE_ADDR4);
+    }
   }
 
   // Wait for request to finish.
