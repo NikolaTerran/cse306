@@ -12,16 +12,16 @@
 // mkfs computes the super block and builds an initial file system. The
 // super block describes the disk layout:
 
-//this is not used, only serve as comparison tool
-struct usuperblock {
-  uint size;         // Size of file system image (blocks)
-  uint nblocks;      // Number of data blocks
-  uint ninodes;      // Number of inodes.
-  uint nlog;         // Number of log blocks
-  uint logstart;     // Block number of first log block
-  uint inodestart;   // Block number of first inode block
-  uint bmapstart;    // Block number of first free map block
-};
+// //this is not used, only serve as comparison tool
+// struct usuperblock {
+//   uint size;         // Size of file system image (blocks)
+//   uint nblocks;      // Number of data blocks
+//   uint ninodes;      // Number of inodes.
+//   uint nlog;         // Number of log blocks
+//   uint logstart;     // Block number of first log block
+//   uint inodestart;   // Block number of first inode block
+//   uint bmapstart;    // Block number of first free map block
+// };
 
 //v5 superblock code but i changed it to use correct type
 struct  filsys {
@@ -30,10 +30,10 @@ struct  filsys {
   ushort s_nfree;    //number of valid entries in s_free array
   ushort s_ninode;   //number of valid entries in the s_inode array
   ushort  s_free[100];  //sector numbers of free sector
-  char    s_flock;  // ?
-  char    s_ilock;  // ?
-  char    s_fmod;  // ?
-  char    s_ronly; // ?
+  uchar    s_flock;  // ?
+  uchar    s_ilock;  // ?
+  uchar    s_fmod;  // ?
+  uchar    s_ronly; // ?
   ushort     s_time[2]; // unix time?
 };
 
@@ -52,18 +52,29 @@ struct udinode {
 };
 
 struct v5inode {
-        char    i_flag;
-        char    i_count;
+        uchar    i_flag;
+        uchar    i_count;
         ushort     i_dev;
         ushort     i_number;
         ushort     i_mode;
-        char    i_nlink;
-        char    i_uid;
-        char    i_gid;
-        char    i_size0;
-        char    *i_size1;
+        uchar    i_nlink;
+        uchar    i_uid;
+        uchar    i_gid;
+        uchar    i_size0;
+        unsigned char* i_size1;
         ushort     i_addr[8];
         ushort     i_lastr;
+};
+
+// on-disk inode structure
+struct v5dinode {
+        ushort     i_mode;
+        uchar    i_nlink;
+        uchar    i_uid;
+        uchar    i_gid;
+        uchar    i_size0;
+        ushort   i_size1;       // cast to char *
+        ushort   i_addr;        // cast to ushort array
 };
 
 /* flags */
@@ -90,16 +101,16 @@ struct v5inode {
 
 
 // Inodes per block.
-#define UIPB           (UBSIZE / sizeof(struct udinode))
+#define UIPB           (UBSIZE / sizeof(struct v5inode))
 
 // Block containing inode i
-#define UIBLOCK(i, sb)     ((i) / UIPB + sb.inodestart)
+#define UIBLOCK(i)     ((i) / UIPB + 2)
 
 // Bitmap bits per block
 #define UBPB           (UBSIZE*8)
 
 // Block of free map containing bit for block b
-#define UBBLOCK(b, sb) (b/UBPB + sb.bmapstart)
+#define UBBLOCK(b, sb) (b/UBPB + 1)//sb.bmapstart)
 
 // Directory is a file containing a sequence of dirent structures.
 #define UDIRSIZ 14

@@ -101,6 +101,7 @@ bread(uint dev, uint blockno)
 
   b = bget(dev, blockno);
   if((b->flags & B_VALID) == 0) {
+    // cprintf("reading...\n");
     iderw(b);
   }
   return b;

@@ -23,23 +23,24 @@
 
 #define min(a, b) ((a) < (b) ? (a) : (b))
 static void itrunc(struct inode*);
-// there should be one superblock per disk device, but we run with
-// only one device
-struct usuperblock usb; 
+// // there should be one superblock per disk device, but we run with
+// // only one device
+// struct usuperblock usb; 
+
 // this holds the actual superblock info
 struct filsys fs;
 
-// Read the super block.
-// not used, see readfilsys
-void
-ureadsb(int dev, struct usuperblock *usb)
-{
-  struct buf *bp;
+// // Read the super block.
+// // not used, see readfilsys
+// void
+// ureadsb(int dev, struct usuperblock *usb)
+// {
+//   struct buf *bp;
 
-  bp = bread(dev, 1);
-  memmove(usb, bp->data, sizeof(*usb));
-  brelse(bp);
-}
+//   bp = bread(dev, 1);
+//   memmove(usb, bp->data, sizeof(*usb));
+//   brelse(bp);
+// }
 
 void
 readfilsys(int dev, struct filsys *fs){
@@ -71,9 +72,9 @@ balloc(uint dev)
   struct buf *bp;
 
   bp = 0;
-  for(b = 0; b < usb.size; b += UBPB){
+  for(b = 0; b < fs.s_fsize * 512; b += UBPB){
     bp = bread(dev, UBBLOCK(b, usb));
-    for(bi = 0; bi < UBPB && b + bi < usb.size; bi++){
+    for(bi = 0; bi < UBPB && b + bi < fs.s_fsize * 512; bi++){
       m = 1 << (bi % 8);
       if((bp->data[bi/8] & m) == 0){  // Is block free?
         bp->data[bi/8] |= m;  // Mark block in use.
@@ -95,7 +96,8 @@ bfree(int dev, uint b)
   struct buf *bp;
   int bi, m;
 
-  ureadsb(dev, &usb);
+  //ureadsb(dev, &usb);
+  readfilsys(dev, &fs);
   bp = bread(dev, UBBLOCK(b, usb));
   bi = b % UBPB;
   m = 1 << (bi % 8);
@@ -221,8 +223,8 @@ uialloc(uint dev, short type)
   struct buf *bp;
   struct udinode *dip;
 
-  for(inum = 1; inum < usb.ninodes; inum++){
-    bp = bread(dev, UIBLOCK(inum, usb));
+  for(inum = 1; inum < fs.s_isize; inum++){
+    bp = bread(dev, UIBLOCK(inum));
     dip = (struct udinode*)bp->data + inum%UIPB;
     if(dip->type == 0){  // a free inode
       memset(dip, 0, sizeof(*dip));
@@ -246,7 +248,7 @@ uiupdate(struct inode *ip)
   struct buf *bp;
   struct udinode *dip;
 
-  bp = bread(ip->dev, UIBLOCK(ip->inum, usb));
+  bp = bread(ip->dev, UIBLOCK(ip->inum));
   dip = (struct udinode*)bp->data + ip->inum%UIPB;
   dip->type = ip->type;
   dip->major = ip->major;
@@ -311,7 +313,7 @@ void
 uilock(struct inode *ip)
 {
   struct buf *bp;
-  struct udinode *dip;
+  struct v5dinode *v5dip;
 
   if(ip == 0 || ip->ref < 1)
     panic("uilock");
@@ -319,18 +321,20 @@ uilock(struct inode *ip)
   acquiresleep(&ip->lock);
 
   if(ip->valid == 0){
-    bp = bread(ip->dev, UIBLOCK(ip->inum, usb));
-    dip = (struct udinode*)bp->data + ip->inum%UIPB;
-    ip->type = dip->type;
-    ip->major = dip->major;
-    ip->minor = dip->minor;
-    ip->nlink = dip->nlink;
-    ip->size = dip->size;
-    memmove(ip->addrs, dip->addrs, sizeof(ip->addrs));
-    brelse(bp);
-    ip->valid = 1;
-    if(ip->type == 0)
-      panic("uilock: no type");
+    bp = bread(ip->dev, 2);
+    v5dip = (struct v5dinode*)bp->data ;
+    cprintf("i_mode %d i_nlink %d i_uid %d i_gid %d i_size0 %d i_size1 %d addr %d\n",v5dip->i_mode,v5dip->i_nlink,v5dip->i_uid, v5dip->i_gid, v5dip->i_size0, v5dip->i_size1, v5dip->i_addr);
+    panic("resume at ufs.c uilock function\n");
+    // ip->type = dip->type;
+    // ip->major = dip->major;
+    // ip->minor = dip->minor;
+    // ip->nlink = dip->nlink;
+    // ip->size = dip->size;
+    // memmove(ip->addrs, dip->addrs, sizeof(ip->addrs));
+    // brelse(bp);
+    // ip->valid = 1;
+    // if(ip->type == 0)
+    //   panic("uilock: no type");
   }
 }
 
@@ -649,9 +653,9 @@ namex(char *path, int unameiparent, char *name)
 {
   struct inode *ip, *next;
 
-  if(*path == '/')
-    ip = iget(ROOTDEV, UROOTINO);
-  else
+  if(*path == '%'){
+    ip = iget(XV5DEV, UROOTINO);
+  }else
     ip = uidup(myproc()->cwd);
 
   while((path = skipelem(path, name)) != 0){

@@ -196,6 +196,7 @@ static struct inode* iget(uint dev, uint inum);
 struct inode*
 ialloc(uint dev, short type)
 {
+
   int inum;
   struct buf *bp;
   struct dinode *dip;
@@ -628,8 +629,9 @@ namex(char *path, int nameiparent, char *name)
 {
   struct inode *ip, *next;
 
-  if(*path == '/')
+  if(*path == '/'){
     ip = iget(ROOTDEV, ROOTINO);
+  }
   else
     ip = idup(myproc()->cwd);
 

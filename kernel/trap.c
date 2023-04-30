@@ -80,7 +80,7 @@ trap(struct trapframe *tf)
     lapiceoi();
     break;
   case T_IRQ0 + IRQ_IDE:
-    cprintf("Inside IDE1 trap\n");
+    // cprintf("Inside IDE1 trap\n");
     ideintr(BASE_ADDR1, BASE_ADDR2);
     lapiceoi();
     break;
