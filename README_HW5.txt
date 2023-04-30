@@ -2,6 +2,8 @@
 
 Part 2:
 
+unix v5 is using disk 3.
+
 usuperblock is the xv6 superblock but I added a u in the front.
 The actual unix v5 superblock is stored in struct filsys. (IT DOESN'T HAVE "E")
 

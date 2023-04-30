@@ -529,7 +529,8 @@ forkret(void)
     iinit(ROOTDEV);
     initlog(ROOTDEV);
     uiinit(XV5DEV);
-    initlog(XV5DEV);
+    //unix v5 does not have a log section
+    // initlog(XV5DEV);
   }
 
   // Return to "caller", actually trapret (see allocproc).

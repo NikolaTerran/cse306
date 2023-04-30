@@ -182,6 +182,7 @@ struct {
 
 
 //https://www.geeksforgeeks.org/bit-manipulation-swap-endianness-of-a-number/
+// not tested yet
 ushort endian_swap(ushort value){
     ushort leftmost_byte = (value & 0x00FF) >> 0;
     ushort left_middle_byle = (value & 0xFF00) >> 8;
