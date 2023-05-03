@@ -33,3 +33,5 @@ char    i_gid     ->  1
 char    i_size0   ->  0
 char    *i_size1  ->  160
 int     i_addr[8] ->  3557
+
+FSSIZE in param.h increased to 4000 to support unix v5

@@ -41,40 +41,42 @@ struct  filsys {
 #define UNINDIRECT (UBSIZE / sizeof(uint))
 #define UMAXFILE (UNDIRECT + UNINDIRECT)
 
-// On-disk inode structure (NOT USED)
-struct udinode {
-  short type;           // File type
-  short major;          // Major device number (T_DEV only)
-  short minor;          // Minor device number (T_DEV only)
-  short nlink;          // Number of links to inode in file system
-  uint size;            // Size of file (bytes)
-  uint addrs[UNDIRECT+1];   // Data block addresses
-};
+// // On-disk inode structure (NOT USED)
+// struct udinode {
+//   short type;           // File type
+//   short major;          // Major device number (T_DEV only)
+//   short minor;          // Minor device number (T_DEV only)
+//   short nlink;          // Number of links to inode in file system
+//   uint size;            // Size of file (bytes)
+//   uint addrs[UNDIRECT+1];   // Data block addresses
+// };
 
-struct v5inode {
-        uchar    i_flag;
-        uchar    i_count;
-        ushort     i_dev;
-        ushort     i_number;
-        ushort     i_mode;
-        uchar    i_nlink;
-        uchar    i_uid;
-        uchar    i_gid;
-        uchar    i_size0;
-        unsigned char* i_size1;
-        ushort     i_addr[8];
-        ushort     i_lastr;
-};
+// //I don't think we are going to use this
+// struct v5inode {
+//         uchar    i_flag;
+//         uchar    i_count;
+//         ushort     i_dev;
+//         ushort     i_number;
+//         ushort     i_mode;
+//         uchar    i_nlink;
+//         uchar    i_uid;
+//         uchar    i_gid;
+//         uchar    i_size0;
+//         unsigned char* i_size1;
+//         ushort     i_addr[8];
+//         unsigned long long garbage;
+// };
 
 // on-disk inode structure
 struct v5dinode {
-        ushort     i_mode;
+        ushort   i_mode;
         uchar    i_nlink;
         uchar    i_uid;
         uchar    i_gid;
         uchar    i_size0;
         ushort   i_size1;       // cast to char *
-        ushort   i_addr;        // cast to ushort array
+        ushort   i_addr[8];        // cast to ushort array
+        unsigned long long garbage;
 };
 
 /* flags */
@@ -101,7 +103,7 @@ struct v5dinode {
 
 
 // Inodes per block.
-#define UIPB           (UBSIZE / sizeof(struct v5inode))
+#define UIPB           (UBSIZE / sizeof(struct v5dinode))
 
 // Block containing inode i
 #define UIBLOCK(i)     ((i) / UIPB + 2)

@@ -73,7 +73,7 @@ balloc(uint dev)
 
   bp = 0;
   for(b = 0; b < fs.s_fsize * 512; b += UBPB){
-    bp = bread(dev, UBBLOCK(b, usb));
+    bp = bread(dev, UBBLOCK(b, fs));
     for(bi = 0; bi < UBPB && b + bi < fs.s_fsize * 512; bi++){
       m = 1 << (bi % 8);
       if((bp->data[bi/8] & m) == 0){  // Is block free?
@@ -219,23 +219,24 @@ static struct inode* iget(uint dev, uint inum);
 struct inode*
 uialloc(uint dev, short type)
 {
-  int inum;
-  struct buf *bp;
-  struct udinode *dip;
+  panic("uialloc not implemented");
+  // int inum;
+  // struct buf *bp;
+  // struct udinode *dip;
 
-  for(inum = 1; inum < fs.s_isize; inum++){
-    bp = bread(dev, UIBLOCK(inum));
-    dip = (struct udinode*)bp->data + inum%UIPB;
-    if(dip->type == 0){  // a free inode
-      memset(dip, 0, sizeof(*dip));
-      dip->type = type;
-      log_write(bp);   // mark it allocated on the disk
-      brelse(bp);
-      return iget(dev, inum);
-    }
-    brelse(bp);
-  }
-  panic("uialloc: no inodes");
+  // for(inum = 1; inum < fs.s_isize; inum++){
+  //   bp = bread(dev, UIBLOCK(inum));
+  //   dip = (struct udinode*)bp->data + inum%UIPB;
+  //   if(dip->type == 0){  // a free inode
+  //     memset(dip, 0, sizeof(*dip));
+  //     dip->type = type;
+  //     log_write(bp);   // mark it allocated on the disk
+  //     brelse(bp);
+  //     return iget(dev, inum);
+  //   }
+  //   brelse(bp);
+  // }
+  // panic("uialloc: no inodes");
 }
 
 // Copy a modified in-memory inode to disk.
@@ -245,19 +246,21 @@ uialloc(uint dev, short type)
 void
 uiupdate(struct inode *ip)
 {
-  struct buf *bp;
-  struct udinode *dip;
+  panic("uiupdate not implemented");
 
-  bp = bread(ip->dev, UIBLOCK(ip->inum));
-  dip = (struct udinode*)bp->data + ip->inum%UIPB;
-  dip->type = ip->type;
-  dip->major = ip->major;
-  dip->minor = ip->minor;
-  dip->nlink = ip->nlink;
-  dip->size = ip->size;
-  memmove(dip->addrs, ip->addrs, sizeof(ip->addrs));
-  log_write(bp);
-  brelse(bp);
+  // struct buf *bp;
+  // struct v5dinode *dip;
+
+  // bp = bread(ip->dev, UIBLOCK(ip->inum));
+  // dip = (struct v5dinode*)bp->data + ip->inum%UIPB;
+  // dip->type = ip->type;
+  // dip->major = ip->major;
+  // dip->minor = ip->minor;
+  // dip->nlink = ip->nlink;
+  // dip->size = ip->size;
+  // memmove(dip->addrs, ip->addrs, sizeof(ip->addrs));
+  // log_write(bp);
+  // brelse(bp);
 }
 
 // Find the inode with number inum on device dev
@@ -321,20 +324,37 @@ uilock(struct inode *ip)
   acquiresleep(&ip->lock);
 
   if(ip->valid == 0){
-    bp = bread(ip->dev, 2);
-    v5dip = (struct v5dinode*)bp->data ;
-    cprintf("i_mode %d i_nlink %d i_uid %d i_gid %d i_size0 %d i_size1 %d addr %d\n",v5dip->i_mode,v5dip->i_nlink,v5dip->i_uid, v5dip->i_gid, v5dip->i_size0, v5dip->i_size1, v5dip->i_addr);
-    panic("resume at ufs.c uilock function\n");
-    // ip->type = dip->type;
-    // ip->major = dip->major;
-    // ip->minor = dip->minor;
-    // ip->nlink = dip->nlink;
-    // ip->size = dip->size;
-    // memmove(ip->addrs, dip->addrs, sizeof(ip->addrs));
-    // brelse(bp);
-    // ip->valid = 1;
-    // if(ip->type == 0)
-    //   panic("uilock: no type");
+    // bp = bread(ip->dev, 2);
+    // v5dip = (struct v5dinode*)bp->data;
+
+    //id nodes starts at sector 2, don't need to pass fs to UIBLOCK
+    bp = bread(ip->dev, UIBLOCK(ip->inum));
+    v5dip = (struct v5dinode*)bp->data;
+    cprintf("i_mode %d i_nlink %d i_uid %d i_gid %d i_size0 %d i_size1 %d addr %d\n",v5dip->i_mode,v5dip->i_nlink,v5dip->i_uid, v5dip->i_gid, v5dip->i_size0, v5dip->i_size1, *(v5dip->i_addr));
+    // panic("resume at ufs.c uilock function\n");
+    if(v5dip->i_mode & IFDIR){
+      ip->type = 1;
+    }
+    ip->major = 3;
+    ip->minor = 1;
+    ip->nlink = v5dip->i_nlink;
+    ip->size = (v5dip->i_size0 << 16) + v5dip->i_size1;
+    // uint cast_addr = v5dip->i_addr;
+    // memmove(ip->addrs, v5dip->i_addr, sizeof(v5dip->i_addr));
+    for(int i = 0; i < sizeof(ip->addrs)/sizeof(ip->addrs[0]); i++){
+      if(i < sizeof(v5dip->i_addr)/sizeof(v5dip->i_addr[0])){
+        ip->addrs[i] = v5dip->i_addr[i];
+      }else{
+        //fill it with 0
+        ip->addrs[i] = 0;
+      }
+    }
+
+    // cprintf("ip addr: %d\n", ip->addrs[0]);
+    brelse(bp);
+    ip->valid = 1;
+    if(ip->type == 0)
+      panic("uilock: no type");
   }
 }
 
@@ -403,8 +423,9 @@ bmap(struct inode *ip, uint bn)
   struct buf *bp;
 
   if(bn < UNDIRECT){
-    if((addr = ip->addrs[bn]) == 0)
+    if((addr = ip->addrs[bn]) == 0){
       ip->addrs[bn] = addr = balloc(ip->dev);
+    }
     return addr;
   }
   bn -= UNDIRECT;
@@ -483,8 +504,9 @@ ureadi(struct inode *ip, char *dst, uint off, uint n)
   struct buf *bp;
 
   if(ip->type == T_DEV){
-    if(ip->major < 0 || ip->major >= NDEV || !devsw[ip->major].read)
+    if(ip->major < 0 || ip->major >= NDEV || !devsw[ip->major].read){
       return -1;
+    }
     return devsw[ip->major].read(ip, dst, n);
   }
 
@@ -562,6 +584,7 @@ udirlookup(struct inode *dp, char *name, uint *poff)
       panic("udirlookup read");
     if(de.inum == 0)
       continue;
+    cprintf("de.name : %s\n",de.name);
     if(unamecmp(name, de.name) == 0){
       // entry matches path element
       if(poff)
@@ -625,12 +648,12 @@ skipelem(char *path, char *name)
   char *s;
   int len;
 
-  while(*path == '/')
+  while(*path == '/' || *path == '%')
     path++;
   if(*path == 0)
     return 0;
   s = path;
-  while(*path != '/' && *path != 0)
+  while((*path != '/' || *path != '%') && *path != 0)
     path++;
   len = path - s;
   if(len >= UDIRSIZ)
@@ -639,7 +662,7 @@ skipelem(char *path, char *name)
     memmove(name, s, len);
     name[len] = 0;
   }
-  while(*path == '/')
+  while((*path == '/' || *path == '%'))
     path++;
   return path;
 }

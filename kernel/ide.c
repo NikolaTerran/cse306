@@ -365,6 +365,7 @@ idestart(struct buf *b, uint base_addr1, uint base_addr2)
 {
   if(b == 0)
     panic("idestart");
+  cprintf("block no:%d\n",b->blockno);
   if(b->blockno >= FSSIZE)
     panic("incorrect blockno");
   int sector_per_block =  BSIZE/SECTOR_SIZE;
