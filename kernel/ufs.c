@@ -330,10 +330,12 @@ uilock(struct inode *ip)
     //id nodes starts at sector 2, don't need to pass fs to UIBLOCK
     bp = bread(ip->dev, UIBLOCK(ip->inum));
     v5dip = (struct v5dinode*)bp->data + (ip->inum - 1) % UIPB;
-    cprintf("inum %d\n",ip->inum);
-    cprintf("uiblock %d\n",UIBLOCK(ip->inum));
-    cprintf("v5dip %x\n",(struct v5dinode*)bp->data + ip->inum - 1);
-    cprintf("i_mode %d i_nlink %d i_uid %d i_gid %d i_size0 %d i_size1 %d addr %d\n",v5dip->i_mode,v5dip->i_nlink,v5dip->i_uid, v5dip->i_gid, v5dip->i_size0, v5dip->i_size1, *(v5dip->i_addr));
+    
+    // cprintf("inum %d\n",ip->inum);
+    // cprintf("uiblock %d\n",UIBLOCK(ip->inum));
+    // cprintf("v5dip %x\n",(struct v5dinode*)bp->data + ip->inum - 1);
+    // cprintf("i_mode %d i_nlink %d i_uid %d i_gid %d i_size0 %d i_size1 %d addr %d\n",v5dip->i_mode,v5dip->i_nlink,v5dip->i_uid, v5dip->i_gid, v5dip->i_size0, v5dip->i_size1, *(v5dip->i_addr));
+    
     if(v5dip->i_mode & IFDIR){
       ip->type = 1;
     }else{
@@ -589,6 +591,7 @@ udirlookup(struct inode *dp, char *name, uint *poff)
     if(de.inum == 0)
       continue;
     // cprintf("de.name : %s\n",de.name);
+    // cprintf("name : %s\n",name);
     if(unamecmp(name, de.name) == 0){
       // entry matches path element
       if(poff)
@@ -657,7 +660,7 @@ skipelem(char *path, char *name)
   if(*path == 0)
     return 0;
   s = path;
-  while((*path != '/' || *path != '%') && *path != 0)
+  while((*path != '/') && *path != 0)
     path++;
   len = path - s;
   if(len >= UDIRSIZ)
@@ -666,7 +669,7 @@ skipelem(char *path, char *name)
     memmove(name, s, len);
     name[len] = 0;
   }
-  while((*path == '/' || *path == '%'))
+  while((*path == '/'))
     path++;
   return path;
 }
@@ -682,8 +685,9 @@ namex(char *path, int unameiparent, char *name)
 
   if(*path == '%'){
     ip = iget(XV5DEV, UROOTINO);
-  }else
+  }else{
     ip = uidup(myproc()->cwd);
+  }
 
   while((path = skipelem(path, name)) != 0){
     uilock(ip);

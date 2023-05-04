@@ -343,6 +343,7 @@ sys_open(void)
 
   }else{
 
+
       if(omode & O_CREATE){
         ip = create(path, T_FILE, 0, 0);
         if(ip == 0){
