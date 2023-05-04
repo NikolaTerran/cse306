@@ -588,7 +588,7 @@ udirlookup(struct inode *dp, char *name, uint *poff)
       panic("udirlookup read");
     if(de.inum == 0)
       continue;
-    cprintf("de.name : %s\n",de.name);
+    // cprintf("de.name : %s\n",de.name);
     if(unamecmp(name, de.name) == 0){
       // entry matches path element
       if(poff)

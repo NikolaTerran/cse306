@@ -110,8 +110,10 @@ sys_fstat(void)
   struct file *f;
   struct stat *st;
 
-  if(argfd(0, 0, &f) < 0 || argptr(1, (void*)&st, sizeof(*st)) < 0)
+  if(argfd(0, 0, &f) < 0 || argptr(1, (void*)&st, sizeof(*st)) < 0){
     return -1;
+  }
+
   return filestat(f, st);
 }
 
@@ -297,41 +299,87 @@ sys_open(void)
 
   begin_op();
 
-  if(omode & O_CREATE){
-    ip = create(path, T_FILE, 0, 0);
-    if(ip == 0){
-      end_op();
-      return -1;
-    }
-  } else {
-    if((ip = namei(path)) == 0){
-      end_op();
-      return -1;
-    }
-    ilock(ip);
-    if(ip->type == T_DIR && omode != O_RDONLY){
-      iunlockput(ip);
-      end_op();
-      return -1;
-    }
-  }
+  // if current working device is xv6 disk
+  if(myproc()->cwd->dev == ROOTDEV){
 
-  if((f = filealloc()) == 0 || (fd = fdalloc(f)) < 0){
-    if(f)
-      fileclose(f);
-    iunlockput(ip);
-    end_op();
-    return -1;
-  }
-  iunlock(ip);
-  end_op();
+  
 
-  f->type = FD_INODE;
-  f->ip = ip;
-  f->off = 0;
-  f->readable = !(omode & O_WRONLY);
-  f->writable = (omode & O_WRONLY) || (omode & O_RDWR);
-  return fd;
+      if(omode & O_CREATE){
+        ip = create(path, T_FILE, 0, 0);
+        if(ip == 0){
+          end_op();
+          return -1;
+        }
+      } else {
+        if((ip = namei(path)) == 0){
+          end_op();
+          return -1;
+        }
+        ilock(ip);
+        if(ip->type == T_DIR && omode != O_RDONLY){
+          iunlockput(ip);
+          end_op();
+          return -1;
+        }
+      }
+
+      if((f = filealloc()) == 0 || (fd = fdalloc(f)) < 0){
+        if(f)
+          fileclose(f);
+        iunlockput(ip);
+        end_op();
+        return -1;
+      }
+      iunlock(ip);
+      end_op();
+
+      f->type = FD_INODE;
+      f->ip = ip;
+      f->off = 0;
+      f->readable = !(omode & O_WRONLY);
+      f->writable = (omode & O_WRONLY) || (omode & O_RDWR);
+      return fd;
+
+
+  }else{
+
+      if(omode & O_CREATE){
+        ip = create(path, T_FILE, 0, 0);
+        if(ip == 0){
+          end_op();
+          return -1;
+        }
+      } else {
+        if((ip = unamei(path)) == 0){
+          end_op();
+          return -1;
+        }
+        uilock(ip);
+        if(ip->type == T_DIR && omode != O_RDONLY){
+          uiunlockput(ip);
+          end_op();
+          return -1;
+        }
+      }
+
+      if((f = filealloc()) == 0 || (fd = fdalloc(f)) < 0){
+        if(f)
+          fileclose(f);
+        uiunlockput(ip);
+        end_op();
+        return -1;
+      }
+      uiunlock(ip);
+      end_op();
+
+      f->type = FD_INODE;
+      f->ip = ip;
+      f->off = 0;
+      f->readable = !(omode & O_WRONLY);
+      f->writable = (omode & O_WRONLY) || (omode & O_RDWR);
+      return fd;
+
+  }
 }
 
 int
@@ -386,8 +434,9 @@ sys_chdir(void)
   }
 
   char xv6 = 1;
-  if(*path == '/'){
-    ip = namei(path);
+  if((*path == '/' || myproc()->cwd->dev == 1) && (ip = namei(path))){
+    //ip = namei(path);
+    //do nothing
   }else{
     if((ip = unamei(path))){
       xv6 = 0;
@@ -415,7 +464,6 @@ sys_chdir(void)
   }else{
     uilock(ip);
     if(ip->type != T_DIR){
-      cprintf("what\n\n");
       uiunlockput(ip);
       end_op();
       return -1;

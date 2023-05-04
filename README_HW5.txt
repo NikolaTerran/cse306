@@ -36,13 +36,15 @@ int     i_addr[8] ->  3557
 
 FSSIZE in param.h increased to 4000 to support unix v5
 
-801100ac -> inum 1
-801100cc -> inum 2
+root -> 801100ac -> inum 1
+bin -> 801100cc -> inum 2
 
 each inum +32
 dev -> inum = 60
 expected dev addr = 8011080C
+actual: 80110f20 ??????
 
+etc -> inum = 
 derived calculation:
 
 bp = bread(ip->dev, UIBLOCK(ip->inum));
