@@ -35,3 +35,17 @@ char    *i_size1  ->  160
 int     i_addr[8] ->  3557
 
 FSSIZE in param.h increased to 4000 to support unix v5
+
+801100ac -> inum 1
+801100cc -> inum 2
+
+each inum +32
+dev -> inum = 60
+expected dev addr = 8011080C
+
+derived calculation:
+
+bp = bread(ip->dev, UIBLOCK(ip->inum));
+v5dip = (struct v5dinode*)bp->data + (ip->inum - 1) % UIPB;
+
+I have no idea how correct this is, but it works for now.

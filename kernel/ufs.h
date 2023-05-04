@@ -106,7 +106,7 @@ struct v5dinode {
 #define UIPB           (UBSIZE / sizeof(struct v5dinode))
 
 // Block containing inode i
-#define UIBLOCK(i)     ((i) / UIPB + 2)
+#define UIBLOCK(i)     ((i) / UIPB + 2UL)
 
 // Bitmap bits per block
 #define UBPB           (UBSIZE*8)

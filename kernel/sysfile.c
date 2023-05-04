@@ -386,9 +386,13 @@ sys_chdir(void)
   }
 
   char xv6 = 1;
-  if((ip = namei(path)) == 0){
+  if(*path == '/'){
+    ip = namei(path);
+  }else{
     if((ip = unamei(path))){
       xv6 = 0;
+    }else if((ip = namei(path))){
+      //do nothing
     }else{
       cprintf("uname not resolved\n");
       end_op();
@@ -411,6 +415,7 @@ sys_chdir(void)
   }else{
     uilock(ip);
     if(ip->type != T_DIR){
+      cprintf("what\n\n");
       uiunlockput(ip);
       end_op();
       return -1;

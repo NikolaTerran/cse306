@@ -329,11 +329,15 @@ uilock(struct inode *ip)
 
     //id nodes starts at sector 2, don't need to pass fs to UIBLOCK
     bp = bread(ip->dev, UIBLOCK(ip->inum));
-    v5dip = (struct v5dinode*)bp->data;
+    v5dip = (struct v5dinode*)bp->data + (ip->inum - 1) % UIPB;
+    cprintf("inum %d\n",ip->inum);
+    cprintf("uiblock %d\n",UIBLOCK(ip->inum));
+    cprintf("v5dip %x\n",(struct v5dinode*)bp->data + ip->inum - 1);
     cprintf("i_mode %d i_nlink %d i_uid %d i_gid %d i_size0 %d i_size1 %d addr %d\n",v5dip->i_mode,v5dip->i_nlink,v5dip->i_uid, v5dip->i_gid, v5dip->i_size0, v5dip->i_size1, *(v5dip->i_addr));
-    // panic("resume at ufs.c uilock function\n");
     if(v5dip->i_mode & IFDIR){
       ip->type = 1;
+    }else{
+      ip->type = 2;
     }
     ip->major = 3;
     ip->minor = 1;
@@ -341,6 +345,7 @@ uilock(struct inode *ip)
     ip->size = (v5dip->i_size0 << 16) + v5dip->i_size1;
     // uint cast_addr = v5dip->i_addr;
     // memmove(ip->addrs, v5dip->i_addr, sizeof(v5dip->i_addr));
+
     for(int i = 0; i < sizeof(ip->addrs)/sizeof(ip->addrs[0]); i++){
       if(i < sizeof(v5dip->i_addr)/sizeof(v5dip->i_addr[0])){
         ip->addrs[i] = v5dip->i_addr[i];
@@ -350,7 +355,6 @@ uilock(struct inode *ip)
       }
     }
 
-    // cprintf("ip addr: %d\n", ip->addrs[0]);
     brelse(bp);
     ip->valid = 1;
     if(ip->type == 0)
