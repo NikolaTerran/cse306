@@ -23,6 +23,7 @@
 //   uint bmapstart;    // Block number of first free map block
 // };
 
+#define NUM_INODES 100
 //v5 superblock code but i changed it to use correct type
 struct  filsys {
   ushort s_isize;      // number of sectors of inode

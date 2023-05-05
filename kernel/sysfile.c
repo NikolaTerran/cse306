@@ -248,42 +248,87 @@ create(char *path, short type, short major, short minor)
   struct inode *ip, *dp;
   char name[DIRSIZ];
 
-  if((dp = nameiparent(path, name)) == 0)
-    return 0;
-  ilock(dp);
+  // if current working device is xv6 disk
+  if(myproc()->cwd->dev == ROOTDEV){
 
-  if((ip = dirlookup(dp, name, &off)) != 0){
-    iunlockput(dp);
-    ilock(ip);
-    if(type == T_FILE && ip->type == T_FILE)
+      if((dp = nameiparent(path, name)) == 0)
+        return 0;
+      ilock(dp);
+
+      if((ip = dirlookup(dp, name, &off)) != 0){
+        iunlockput(dp);
+        ilock(ip);
+        if(type == T_FILE && ip->type == T_FILE)
+          return ip;
+        iunlockput(ip);
+        return 0;
+      }
+
+      if((ip = ialloc(dp->dev, type)) == 0)
+        panic("create: ialloc");
+
+      ilock(ip);
+      ip->major = major;
+      ip->minor = minor;
+      ip->nlink = 1;
+      iupdate(ip);
+
+      if(type == T_DIR){  // Create . and .. entries.
+        dp->nlink++;  // for ".."
+        iupdate(dp);
+        // No ip->nlink++ for ".": avoid cyclic ref count.
+        if(dirlink(ip, ".", ip->inum) < 0 || dirlink(ip, "..", dp->inum) < 0)
+          panic("create dots");
+      }
+
+      if(dirlink(dp, name, ip->inum) < 0)
+        panic("create: dirlink");
+
+      iunlockput(dp);
+
       return ip;
-    iunlockput(ip);
-    return 0;
+  
+  // if current working device is v5 disk
+  }else{
+
+    if((dp = unameiparent(path, name)) == 0)
+        return 0;
+      uilock(dp);
+
+      if((ip = udirlookup(dp, name, &off)) != 0){
+        uiunlockput(dp);
+        uilock(ip);
+        if(type == T_FILE && ip->type == T_FILE)
+          return ip;
+        uiunlockput(ip);
+        return 0;
+      }
+
+      if((ip = uialloc(dp->dev, type)) == 0)
+        panic("create: uialloc");
+
+      uilock(ip);
+      ip->major = major;
+      ip->minor = minor;
+      ip->nlink = 1;
+      uiupdate(ip);
+
+      if(type == T_DIR){  // Create . and .. entries.
+        dp->nlink++;  // for ".."
+        uiupdate(dp);
+        // No ip->nlink++ for ".": avoid cyclic ref count.
+        if(udirlink(ip, ".", ip->inum) < 0 || udirlink(ip, "..", dp->inum) < 0)
+          panic("create dots");
+      }
+
+      if(udirlink(dp, name, ip->inum) < 0)
+        panic("create: dirlink");
+
+      uiunlockput(dp);
+
+      return ip;
+
   }
-
-  if((ip = ialloc(dp->dev, type)) == 0)
-    panic("create: ialloc");
-
-  ilock(ip);
-  ip->major = major;
-  ip->minor = minor;
-  ip->nlink = 1;
-  iupdate(ip);
-
-  if(type == T_DIR){  // Create . and .. entries.
-    dp->nlink++;  // for ".."
-    iupdate(dp);
-    // No ip->nlink++ for ".": avoid cyclic ref count.
-    if(dirlink(ip, ".", ip->inum) < 0 || dirlink(ip, "..", dp->inum) < 0)
-      panic("create dots");
-  }
-
-  if(dirlink(dp, name, ip->inum) < 0)
-    panic("create: dirlink");
-
-  iunlockput(dp);
-
-  return ip;
 }
 
 int
@@ -340,7 +385,7 @@ sys_open(void)
       f->writable = (omode & O_WRONLY) || (omode & O_RDWR);
       return fd;
 
-
+  // if using v5
   }else{
 
 

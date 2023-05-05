@@ -180,6 +180,8 @@ write_log(void)
 {
   int tail;
 
+  panic("yeah the writing happens in log.c");
+
   for (tail = 0; tail < log.lh.n; tail++) {
     struct buf *to = bread(log.dev, log.start+tail+1); // log block
     struct buf *from = bread(log.dev, log.lh.block[tail]); // cache block

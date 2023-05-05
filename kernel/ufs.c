@@ -219,24 +219,35 @@ static struct inode* iget(uint dev, uint inum);
 struct inode*
 uialloc(uint dev, short type)
 {
-  panic("uialloc not implemented");
-  // int inum;
-  // struct buf *bp;
-  // struct udinode *dip;
+  int inum;
+  struct buf *bp;
+  struct v5dinode *dip;
 
-  // for(inum = 1; inum < fs.s_isize; inum++){
-  //   bp = bread(dev, UIBLOCK(inum));
-  //   dip = (struct udinode*)bp->data + inum%UIPB;
-  //   if(dip->type == 0){  // a free inode
-  //     memset(dip, 0, sizeof(*dip));
-  //     dip->type = type;
-  //     log_write(bp);   // mark it allocated on the disk
-  //     brelse(bp);
-  //     return iget(dev, inum);
-  //   }
-  //   brelse(bp);
-  // }
-  // panic("uialloc: no inodes");
+  //
+  for(inum = 1; inum < 4000; inum++){
+    bp = bread(dev, UIBLOCK(inum));
+    dip = (struct v5dinode*)bp->data + (inum-1)%UIPB;
+    cprintf("i_mode %d i_nlink %d i_uid %d i_gid %d i_size0 %d i_size1 %d addr %d\n",dip->i_mode,dip->i_nlink,dip->i_uid, dip->i_gid, dip->i_size0, dip->i_size1, *(dip->i_addr));
+    cprintf("inum: %d\n",inum);
+    if((dip->i_mode & IALLOC) == 0){  // a free inode
+      memset(dip, 0, sizeof(*dip));
+
+      //if dir
+      if(type == 2){
+        dip->i_mode = IFDIR | IALLOC;
+      }else{
+        //if file
+        // probably have to check if it is large or small
+        dip->i_mode = 0;
+      }
+      
+      log_write(bp);   // mark it allocated on the disk
+      brelse(bp);
+      return iget(dev, inum);
+    }
+    brelse(bp);
+  }
+  panic("uialloc: no inodes");
 }
 
 // Copy a modified in-memory inode to disk.
@@ -246,21 +257,35 @@ uialloc(uint dev, short type)
 void
 uiupdate(struct inode *ip)
 {
-  panic("uiupdate not implemented");
+  // panic("uiupdate not implemented");
 
-  // struct buf *bp;
-  // struct v5dinode *dip;
+  struct buf *bp;
+  struct v5dinode *dip;
 
-  // bp = bread(ip->dev, UIBLOCK(ip->inum));
-  // dip = (struct v5dinode*)bp->data + ip->inum%UIPB;
-  // dip->type = ip->type;
-  // dip->major = ip->major;
-  // dip->minor = ip->minor;
-  // dip->nlink = ip->nlink;
-  // dip->size = ip->size;
-  // memmove(dip->addrs, ip->addrs, sizeof(ip->addrs));
-  // log_write(bp);
-  // brelse(bp);
+  bp = bread(ip->dev, UIBLOCK(ip->inum));
+  dip = (struct v5dinode*)bp->data + (ip->inum-1)%UIPB;
+
+  if(ip->type == 1){
+    dip->i_mode = IALLOC | IFDIR;
+  }else{
+    dip->i_mode = IALLOC;
+  }
+  
+  dip->i_nlink = ip->nlink;
+  dip->i_gid = 3;
+  dip->i_uid = 1;
+  dip->i_size0 = ip->size >> 16;
+  dip->i_size1 = ip->size;
+  
+
+  // don't use memmove for inodes!!!
+  // memmove(dip->i_addr, ip->addrs, sizeof(ip->addrs));
+  for(int i = 0; i < sizeof(dip->i_addr)/sizeof(dip->i_addr[0]); i++){
+      dip->i_addr[i] = ip->addrs[i];
+  }
+
+  log_write(bp);
+  brelse(bp);
 }
 
 // Find the inode with number inum on device dev
@@ -346,8 +371,9 @@ uilock(struct inode *ip)
     ip->nlink = v5dip->i_nlink;
     ip->size = (v5dip->i_size0 << 16) + v5dip->i_size1;
     // uint cast_addr = v5dip->i_addr;
-    // memmove(ip->addrs, v5dip->i_addr, sizeof(v5dip->i_addr));
 
+    // don't use memmove!!!
+    // memmove(ip->addrs, v5dip->i_addr, sizeof(v5dip->i_addr));
     for(int i = 0; i < sizeof(ip->addrs)/sizeof(ip->addrs[0]); i++){
       if(i < sizeof(v5dip->i_addr)/sizeof(v5dip->i_addr[0])){
         ip->addrs[i] = v5dip->i_addr[i];
