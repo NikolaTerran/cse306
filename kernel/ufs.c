@@ -64,7 +64,7 @@ bzero(int dev, int bno)
 
 // Blocks.
 
-// Allocate a zeroed disk block.
+// Obtain the next avaliable free disk block from the free list of the specified device
 static uint
 balloc(uint dev)
 {
@@ -86,6 +86,7 @@ balloc(uint dev)
     }
     brelse(bp);
   }
+
   panic("balloc: out of blocks");
 }
 
@@ -370,6 +371,7 @@ uilock(struct inode *ip)
     ip->minor = 1;
     ip->nlink = v5dip->i_nlink;
     ip->size = (v5dip->i_size0 << 16) + v5dip->i_size1;
+    // cprintf("IP->SIZE: %d", ip->size);
     // uint cast_addr = v5dip->i_addr;
 
     // don't use memmove!!!
@@ -460,6 +462,25 @@ bmap(struct inode *ip, uint bn)
     }
     return addr;
   }
+
+  //from sys/ken/subr.c in the Unix v6 github repo (piazza)
+  int i = bn>>8;
+  if (bn & 0174000)
+    i=7;
+  if ((addr = ip->addrs[i]) == 0){
+    ip->addrs[i] = addr = balloc(ip->dev);
+  }
+  bp = bread(ip->dev, addr);
+  a = (uint*)bp->data;
+  if ((addr = a[bn]) == 0) {
+    a[bn] = addr = balloc(ip->dev);
+  }
+  brelse(bp);
+  return addr;
+
+
+
+  /*
   bn -= UNDIRECT;
 
   if(bn < UNINDIRECT){
@@ -474,7 +495,7 @@ bmap(struct inode *ip, uint bn)
     }
     brelse(bp);
     return addr;
-  }
+  } */
 
   panic("bmap: out of range");
 }

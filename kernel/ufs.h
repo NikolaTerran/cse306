@@ -29,8 +29,9 @@ struct  filsys {
   ushort s_isize;      // number of sectors of inode
   ushort s_fsize;    // number of disk sectors
   ushort s_nfree;    //number of valid entries in s_free array
+  ushort s_free[100];   // holds sector numbers of free sectors
   ushort s_ninode;   //number of valid entries in the s_inode array
-  ushort  s_free[100];  //sector numbers of free sector
+  ushort  s_inode[100];  //sector numbers of free inodes
   uchar    s_flock;  // ?
   uchar    s_ilock;  // ?
   uchar    s_fmod;  // ?
@@ -38,8 +39,8 @@ struct  filsys {
   ushort     s_time[2]; // unix time?
 };
 
-#define UNDIRECT 12
-#define UNINDIRECT (UBSIZE / sizeof(uint))
+#define UNDIRECT 8
+#define UNINDIRECT 8
 #define UMAXFILE (UNDIRECT + UNINDIRECT)
 
 // // On-disk inode structure (NOT USED)
