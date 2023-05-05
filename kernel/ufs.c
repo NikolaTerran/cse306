@@ -390,7 +390,31 @@ uialloc(uint dev, short type)
   struct buf *bp;
   struct v5dinode *dip;
   //
-  for(inum = 1; inum < 4000; inum++){
+  cprintf("inside uialloc\n");
+  for (inum=1; inum < 100; inum++) {
+    uint addr = fs.s_inode[inum];
+    bp = bread(dev, UIBLOCK(addr));
+    dip = (struct v5dinode*)bp->data + (inum-1)%UIPB;
+    cprintf("i_mode %d i_nlink %d i_uid %d i_gid %d i_size0 %d i_size1 %d addr %d\n",dip->i_mode,dip->i_nlink,dip->i_uid, dip->i_gid, dip->i_size0, dip->i_size1, *(dip->i_addr));
+
+    if((dip->i_mode & IALLOC) == 0){  // a free inode
+      memset(dip, 0, sizeof(*dip));
+
+      //if dir
+      if(type == 2){
+        dip->i_mode = IFDIR | IALLOC;
+      }else{
+        //if file
+        // probably have to check if it is large or small
+        dip->i_mode = 0;
+      }
+      brelse(bp);
+      return iget(dev, inum);
+    }
+    brelse(bp);
+
+  }
+  /* for(inum = 1; inum < 4000; inum++){
     bp = bread(dev, UIBLOCK(inum));
     dip = (struct v5dinode*)bp->data + (inum-1)%UIPB;
     // cprintf("i_mode %d i_nlink %d i_uid %d i_gid %d i_size0 %d i_size1 %d addr %d\n",dip->i_mode,dip->i_nlink,dip->i_uid, dip->i_gid, dip->i_size0, dip->i_size1, *(dip->i_addr));
@@ -412,7 +436,7 @@ uialloc(uint dev, short type)
       return iget(dev, inum);
     }
     brelse(bp);
-  }
+  } */
   panic("uialloc: no inodes");
 }
 
