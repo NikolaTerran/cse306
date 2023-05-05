@@ -207,7 +207,10 @@ ialloc(uint dev, short type)
     if(dip->type == 0){  // a free inode
       memset(dip, 0, sizeof(*dip));
       dip->type = type;
-      log_write(bp);   // mark it allocated on the disk
+      // log_write(bp);   // mark it allocated on the disk
+      // cprintf("start alloc in fs.c\n");
+      bwrite(bp);
+      // cprintf("end alloc in fs.c\n");
       brelse(bp);
       return iget(dev, inum);
     }
@@ -234,7 +237,10 @@ iupdate(struct inode *ip)
   dip->nlink = ip->nlink;
   dip->size = ip->size;
   memmove(dip->addrs, ip->addrs, sizeof(ip->addrs));
-  log_write(bp);
+  // log_write(bp);
+  // cprintf("start in fs.c\n");
+  bwrite(bp);
+  // cprintf("end in fs.c\n");
   brelse(bp);
 }
 

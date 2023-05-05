@@ -92,7 +92,7 @@ trap(struct trapframe *tf)
 
   //HW5
   case T_IRQ0 + IRQ_IDE2:
-    cprintf("Inside IDE2 trap\n");
+    // cprintf("Inside IDE2 trap\n");
     ideintr(BASE_ADDR3, BASE_ADDR4);
     lapiceoi();
     break;

@@ -291,8 +291,10 @@ create(char *path, short type, short major, short minor)
   // if current working device is v5 disk
   }else{
 
-    if((dp = unameiparent(path, name)) == 0)
+      if((dp = unameiparent(path, name)) == 0){
         return 0;
+      }
+      
       uilock(dp);
 
       if((ip = udirlookup(dp, name, &off)) != 0){
@@ -304,14 +306,20 @@ create(char *path, short type, short major, short minor)
         return 0;
       }
 
+      // cprintf("here1: %d\n",ip->type);
+
       if((ip = uialloc(dp->dev, type)) == 0)
         panic("create: uialloc");
+
+      // cprintf("here2: %d\n",ip->type);
 
       uilock(ip);
       ip->major = major;
       ip->minor = minor;
       ip->nlink = 1;
       uiupdate(ip);
+
+      // cprintf("here3: %d\n",ip->type);
 
       if(type == T_DIR){  // Create . and .. entries.
         dp->nlink++;  // for ".."
@@ -435,11 +443,28 @@ sys_mkdir(void)
   struct inode *ip;
 
   begin_op();
-  if(argstr(0, &path) < 0 || (ip = create(path, T_DIR, 0, 0)) == 0){
-    end_op();
-    return -1;
+
+  
+  // if current working device is xv6 disk
+  if(myproc()->cwd->dev == ROOTDEV){
+
+      if(argstr(0, &path) < 0 || (ip = create(path, T_DIR, 0, 0)) == 0){
+        end_op();
+        return -1;
+      }
+      iunlockput(ip);
+
+  }else{
+
+      if(argstr(0, &path) < 0 || (ip = create(path, T_DIR, 0, 0)) == 0){
+        end_op();
+        return -1;
+      }
+      uiunlockput(ip);
+
   }
-  iunlockput(ip);
+  
+  
   end_op();
   return 0;
 }

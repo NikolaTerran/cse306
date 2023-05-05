@@ -363,6 +363,8 @@ ideinit(void)
 static void
 idestart(struct buf *b, uint base_addr1, uint base_addr2)
 {
+  // cprintf("ide dev : %d\n",b->dev);
+
   if(b == 0)
     panic("idestart");
   if(b->blockno >= FSSIZE)
@@ -466,7 +468,7 @@ idestart(struct buf *b, uint base_addr1, uint base_addr2)
   }else{
     //Programmed I/O
 
-    idewait(0, base_addr1);
+    idewait(0, base_addr1); 
 
     // load first half of parameters?
     outb(base_addr2, 0);  // generate interrupt

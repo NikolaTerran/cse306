@@ -76,6 +76,10 @@ install_trans(void)
     struct buf *lbuf = bread(log.dev, log.start+tail+1); // read log block
     struct buf *dbuf = bread(log.dev, log.lh.block[tail]); // read dst
     memmove(dbuf->data, lbuf->data, BSIZE);  // copy block to dst
+    // panic("dont!");
+
+    // cprintf("lbuf dev: %d\n", lbuf->dev);
+
     bwrite(dbuf);  // write dst to disk
     brelse(lbuf);
     brelse(dbuf);
@@ -180,7 +184,7 @@ write_log(void)
 {
   int tail;
 
-  panic("yeah the writing happens in log.c");
+  // panic("yeah the writing happens in log.c");
 
   for (tail = 0; tail < log.lh.n; tail++) {
     struct buf *to = bread(log.dev, log.start+tail+1); // log block
