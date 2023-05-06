@@ -435,7 +435,7 @@ uialloc(uint dev, short type)
   struct buf *bp;
   struct v5dinode *dip;
 
-  for (inum=1; inum < 4000; inum++) {
+  for (inum=1; inum < 1280; inum++) {
     // uint addr = fs.s_inode[inum];
     bp = bread(dev, UIBLOCK(inum));
     dip = (struct v5dinode*)bp->data + (inum-1)%UIPB;
