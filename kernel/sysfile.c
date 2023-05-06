@@ -76,7 +76,28 @@ sys_read(void)
 
   if(argfd(0, 0, &f) < 0 || argint(2, &n) < 0 || argptr(1, &p, n) < 0)
     return -1;
-  return fileread(f, p, n);
+
+  if(myproc()->cwd->dev == ROOTDEV) {
+    return fileread(f, p, n);
+  }
+
+  else {
+    //using v5 device
+    int r;
+
+    if(f->readable == 0)
+      return -1;
+    if(f->type == FD_PIPE)
+      return piperead(f->pipe, p, n);
+    if(f->type == FD_INODE){
+      uilock(f->ip);
+      if((r = ureadi(f->ip, p, f->off, n)) > 0)
+        f->off += r;
+      uiunlock(f->ip);
+      return r;
+    }
+    panic("fileread");
+  }
 }
 
 int
@@ -130,7 +151,6 @@ sys_write(void)
       return i == n ? n : -1;
     }
     panic("filewrite");
-
   }
 }
 
@@ -238,48 +258,93 @@ sys_unlink(void)
   if(argstr(0, &path) < 0)
     return -1;
 
-  begin_op();
-  if((dp = nameiparent(path, name)) == 0){
-    end_op();
-    return -1;
-  }
+  if(myproc()->cwd->dev == ROOTDEV){
 
-  ilock(dp);
+    begin_op();
+    if((dp = nameiparent(path, name)) == 0){
+      end_op();
+      return -1;
+    }
 
-  // Cannot unlink "." or "..".
-  if(namecmp(name, ".") == 0 || namecmp(name, "..") == 0)
-    goto bad;
+    ilock(dp);
 
-  if((ip = dirlookup(dp, name, &off)) == 0)
-    goto bad;
-  ilock(ip);
+    // Cannot unlink "." or "..".
+    if(namecmp(name, ".") == 0 || namecmp(name, "..") == 0)
+      goto bad;
 
-  if(ip->nlink < 1)
-    panic("unlink: nlink < 1");
-  if(ip->type == T_DIR && !isdirempty(ip)){
+    if((ip = dirlookup(dp, name, &off)) == 0)
+      goto bad;
+    ilock(ip);
+
+    if(ip->nlink < 1)
+      panic("unlink: nlink < 1");
+    if(ip->type == T_DIR && !isdirempty(ip)){
+      iunlockput(ip);
+      goto bad;
+    }
+
+    memset(&de, 0, sizeof(de));
+    if(writei(dp, (char*)&de, off, sizeof(de)) != sizeof(de))
+      panic("unlink: writei");
+    if(ip->type == T_DIR){
+      dp->nlink--;
+      iupdate(dp);
+    }
+    iunlockput(dp);
+
+    ip->nlink--;
+    iupdate(ip);
     iunlockput(ip);
-    goto bad;
+
+    end_op();
+
+    return 0;
   }
+  else {
+    begin_op();
+    if((dp = unameiparent(path, name)) == 0){
+      end_op();
+      return -1;
+    }
 
-  memset(&de, 0, sizeof(de));
-  if(writei(dp, (char*)&de, off, sizeof(de)) != sizeof(de))
-    panic("unlink: writei");
-  if(ip->type == T_DIR){
-    dp->nlink--;
-    iupdate(dp);
+    uilock(dp);
+
+    // Cannot unlink "." or "..".
+    if(unamecmp(name, ".") == 0 || unamecmp(name, "..") == 0)
+      goto bad;
+
+    if((ip = udirlookup(dp, name, &off)) == 0)
+      goto bad;
+    uilock(ip);
+
+    if(ip->nlink < 1)
+      panic("unlink: nlink < 1");
+    if(ip->type == T_DIR && !isdirempty(ip)){
+      uiunlockput(ip);
+      goto bad;
+    }
+
+    memset(&de, 0, sizeof(de));
+    if(uwritei(dp, (char*)&de, off, sizeof(de)) != sizeof(de))
+      panic("unlink: writei");
+    if(ip->type == T_DIR){
+      dp->nlink--;
+      uiupdate(dp);
+    }
+    uiunlockput(dp);
+
+    ip->nlink--;
+    uiupdate(ip);
+    uiunlockput(ip);
+
+    end_op();
+
+    return 0;
   }
-  iunlockput(dp);
-
-  ip->nlink--;
-  iupdate(ip);
-  iunlockput(ip);
-
-  end_op();
-
-  return 0;
 
 bad:
-  iunlockput(dp);
+  if(myproc()->cwd->dev == ROOTDEV) iunlockput(dp);
+  else uiunlockput(dp);
   end_op();
   return -1;
 }
