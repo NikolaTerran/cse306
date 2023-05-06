@@ -112,20 +112,20 @@ struct udirent {
 // ushort	rablock;
 
 
-// //from v5 buf.h
-// struct v5buf {
-// 	ushort	b_flags;
-// 	struct	buf *b_forw;
-// 	struct	buf *b_back;
-// 	struct	buf *av_forw;
-// 	struct	buf *av_back;
-// 	ushort	b_dev;
-// 	ushort	b_wcount;
-// 	char	*b_addr;
-// 	char	*b_blkno;
-// 	char	b_error;
-// 	char	*b_resid;
-// } buf[NBUF];
+//from v5 buf.h
+struct v5buf {
+	ushort	b_flags;
+	struct	buf *b_forw;
+	struct	buf *b_back;
+	struct	buf *av_forw;
+	struct	buf *av_back;
+	ushort	b_dev;
+	ushort	b_wcount;
+	char	*b_addr;
+	char	*b_blkno;
+	char	b_error;
+	char	*b_resid;
+};
 
 // /*
 //  * forw and back are shared with "buf" struct.

@@ -207,9 +207,9 @@ ialloc(uint dev, short type)
     if(dip->type == 0){  // a free inode
       memset(dip, 0, sizeof(*dip));
       dip->type = type;
-      // log_write(bp);   // mark it allocated on the disk
+      log_write(bp);   // mark it allocated on the disk
       // cprintf("start alloc in fs.c\n");
-      bwrite(bp);
+      // bwrite(bp);
       // cprintf("end alloc in fs.c\n");
       brelse(bp);
       return iget(dev, inum);

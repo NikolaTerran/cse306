@@ -264,6 +264,8 @@ create(char *path, short type, short major, short minor)
         return 0;
       }
 
+      
+
       if((ip = ialloc(dp->dev, type)) == 0)
         panic("create: ialloc");
 
@@ -271,7 +273,7 @@ create(char *path, short type, short major, short minor)
       ip->major = major;
       ip->minor = minor;
       ip->nlink = 1;
-      iupdate(ip);
+      iupdate(ip);  
 
       if(type == T_DIR){  // Create . and .. entries.
         dp->nlink++;  // for ".."
@@ -306,20 +308,18 @@ create(char *path, short type, short major, short minor)
         return 0;
       }
 
-      // cprintf("here1: %d\n",ip->type);
-
       if((ip = uialloc(dp->dev, type)) == 0)
         panic("create: uialloc");
 
-      // cprintf("here2: %d\n",ip->type);
-
       uilock(ip);
+
+      cprintf("ip type: %d\n",ip->type);
       ip->major = major;
       ip->minor = minor;
       ip->nlink = 1;
       uiupdate(ip);
 
-      // cprintf("here3: %d\n",ip->type);
+      cprintf("ip type: %d\n",ip->type);
 
       if(type == T_DIR){  // Create . and .. entries.
         dp->nlink++;  // for ".."
