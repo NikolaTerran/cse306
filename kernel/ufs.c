@@ -143,7 +143,9 @@ static ushort balloc(ushort dev)
 static void
 bfree(int dev, uint b)
 {
-  ushort *bp, *ip;
+  ushort *ip;
+  struct buf *bp;
+   
   fs.s_fmod = 1;
   if (ubadblock(b, dev))
     return;
@@ -154,11 +156,11 @@ bfree(int dev, uint b)
   }
   if (fs.s_nfree >= 100) {
     fs.s_flock++;
-    bp = (ushort *)bread(dev, b);
+    bp = bread(dev, b);
     ip = (ushort *)(((struct v5buf*)bp)->b_addr);
     *ip++ = fs.s_nfree;
     fs.s_nfree = 0;
-    //bwrite(bp);
+    bwrite(bp);
     fs.s_flock = 0;
     wakeup(&fs.s_flock);
 
