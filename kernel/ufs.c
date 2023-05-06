@@ -141,7 +141,8 @@ static void bfree(ushort dev, uint bno)
 		ip = (ushort *)(((struct v5buf *)bp)->b_addr);
 		*ip++ = fs.s_nfree;
 		
-    // bcopy(fs.s_free, ip, 100);
+    //bcopy(fs.s_free, ip, 100);
+    memmove(fs.s_free, ip, 50);
 
 		fs.s_nfree = 0;
 		bwrite((struct buf*)bp);
@@ -276,6 +277,7 @@ static ushort balloc(ushort dev)
 		fs.s_nfree = *ip++;
 		
     // bcopy(ip, fs.s_free, 100);
+    memmove(ip, fs.s_free, 50);
 
 		brelse((struct buf *)bp);
 		fs.s_flock = 0;
@@ -504,6 +506,8 @@ uiupdate(struct inode *ip)
 
   if(ip->type == T_DIR){
     dip->i_mode = IALLOC | IFDIR;
+  }else if(ip->type == 0){
+    dip->i_mode &= 0x7fff;
   }else{
     dip->i_mode = IALLOC;
   }
