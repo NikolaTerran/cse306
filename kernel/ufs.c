@@ -261,7 +261,7 @@ static ushort balloc(ushort dev)
   brelse((struct buf *)bp);
   bzero(dev, bno);
 	fs.s_fmod = 1;
-	return(*bp);
+	return bno;
 }
 
 //completely unuseable
@@ -417,7 +417,7 @@ uialloc(uint dev, short type)
     if((dip->i_mode & IALLOC) == 0){  // a free inode
       memset(dip, 0, sizeof(*dip));
 
-      cprintf("inum? : %d\n",inum);
+      // cprintf("inum? : %d\n",inum);
       //if dir
       if(type == T_DIR){
         dip->i_mode = IFDIR | IALLOC;
@@ -568,7 +568,7 @@ uilock(struct inode *ip)
     // cprintf("inum %d\n",ip->inum);
     // cprintf("uiblock %d\n",UIBLOCK(ip->inum));
     // cprintf("v5dip %x\n",(struct v5dinode*)bp->data + ip->inum - 1);
-    // cprintf("i_mode %d i_nlink %d i_uid %d i_gid %d i_size0 %d i_size1 %d addr %d\n",v5dip->i_mode,v5dip->i_nlink,v5dip->i_uid, v5dip->i_gid, v5dip->i_size0, v5dip->i_size1, *(v5dip->i_addr));
+    cprintf("i_mode %d i_nlink %d i_uid %d i_gid %d i_size0 %d i_size1 %d addr %d\n",v5dip->i_mode,v5dip->i_nlink,v5dip->i_uid, v5dip->i_gid, v5dip->i_size0, v5dip->i_size1, *(v5dip->i_addr));
     // cprintf("inum uilock: %d\n", ip->inum);
 
     if((v5dip->i_mode) & IFDIR){

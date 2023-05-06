@@ -313,13 +313,13 @@ create(char *path, short type, short major, short minor)
 
       uilock(ip);
 
-      cprintf("ip type: %d\n",ip->type);
+      // cprintf("ip type: %d\n",ip->type);
       ip->major = major;
       ip->minor = minor;
       ip->nlink = 1;
       uiupdate(ip);
 
-      cprintf("ip type: %d\n",ip->type);
+      // cprintf("ip type: %d\n",ip->type);
 
       if(type == T_DIR){  // Create . and .. entries.
         dp->nlink++;  // for ".."
