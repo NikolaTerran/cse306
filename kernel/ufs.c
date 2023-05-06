@@ -93,11 +93,83 @@ bzero(int dev, int bno)
 //   panic("balloc: out of blocks");
 // }
 
-// Free a disk block.
+static ushort ubadblock(uint abn, ushort dev)
+{
+  struct filsys *fp;
+  char * bn;
+  fp = &fs;
+  bn = (char *)abn;
+  if (bn < (char *)(fp->s_isize+2) || bn >= (char *)(uint)(fp->s_fsize)) {
+    panic("bad block");
+  }
+  return(0);
+}
+
+static ushort balloc(ushort dev)
+{
+  int bno;
+  ushort *bp, *ip;
+  // while(fs.s_flock)
+  //  sleep(fp.s_flock, PINOD);
+  do {
+    bno = fs.s_free[--fs.s_nfree];
+    if(bno == 0) {
+      fs.s_nfree++;
+      panic("no space");
+    }
+  } while (ubadblock(bno, dev));
+  if(fs.s_nfree <= 0) {
+    fs.s_flock++;
+    bp = (ushort *)bread(dev, bno);
+    ip = (ushort *)(((struct v5buf*)bp)->b_addr);
+    fs.s_nfree = *ip++;
+    
+    // bcopy(ip, fs.s_free, 100);
+
+    brelse((struct buf *)bp);
+    fs.s_flock = 0;
+    wakeup(&fs.s_flock);
+  }
+  bp = (ushort * )bread(dev, bno);
+  // memset(((struct buf*)bp)->data, 0, UBSIZE);
+  brelse((struct buf *)bp);
+  bzero(dev, bno);
+  fs.s_fmod = 1;
+  return bno;
+}
+
+
+// Place the specified disk block back on the free list of the specified device
 static void
 bfree(int dev, uint b)
 {
-  struct buf *bp;
+  ushort *bp, *ip;
+  fs.s_fmod = 1;
+  if (ubadblock(b, dev))
+    return;
+
+  if (fs.s_nfree <= 0) {
+    fs.s_nfree = 1;
+    fs.s_free[0] = 0;
+  }
+  if (fs.s_nfree >= 100) {
+    fs.s_flock++;
+    bp = (ushort *)bread(dev, b);
+    ip = (ushort *)(((struct v5buf*)bp)->b_addr);
+    *ip++ = fs.s_nfree;
+    fs.s_nfree = 0;
+    //bwrite(bp);
+    fs.s_flock = 0;
+    wakeup(&fs.s_flock);
+
+  }
+  fs.s_free[fs.s_nfree++] = b;
+  fs.s_fmod = 1;
+  return;
+
+
+
+  /* struct buf *bp;
   int bi, m;
 
   //ureadsb(dev, &usb);
@@ -110,7 +182,7 @@ bfree(int dev, uint b)
   bp->data[bi/8] &= ~m;
   // log_write(bp);
   bwrite(bp);
-  brelse(bp);
+  brelse(bp); */
 }
 
 // Inodes.
@@ -217,52 +289,6 @@ uiinit(int dev)
 
 static struct inode* iget(uint dev, uint inum);
 
-
-
-static ushort ubadblock(uint abn, ushort dev)
-{
-	struct filsys *fp;
-	char * bn;
-	fp = &fs;
-	bn = (char *)abn;
-	if (bn < (char *)(fp->s_isize+2) || bn >= (char *)(uint)(fp->s_fsize)) {
-		panic("bad block");
-	}
-	return(0);
-}
-
-static ushort balloc(ushort dev)
-{
-	int bno;
-	ushort *bp, *ip;
-	// while(fs.s_flock)
-	// 	sleep(fp.s_flock, PINOD);
-	do {
-		bno = fs.s_free[--fs.s_nfree];
-		if(bno == 0) {
-			fs.s_nfree++;
-			panic("no space");
-		}
-	} while (ubadblock(bno, dev));
-	if(fs.s_nfree <= 0) {
-		fs.s_flock++;
-		bp = (ushort *)bread(dev, bno);
-		ip = (ushort *)(((struct v5buf*)bp)->b_addr);
-		fs.s_nfree = *ip++;
-		
-    // bcopy(ip, fs.s_free, 100);
-
-		brelse((struct buf *)bp);
-		fs.s_flock = 0;
-		wakeup(&fs.s_flock);
-	}
-	bp = (ushort * )bread(dev, bno);
-	// memset(((struct buf*)bp)->data, 0, UBSIZE);
-  brelse((struct buf *)bp);
-  bzero(dev, bno);
-	fs.s_fmod = 1;
-	return bno;
-}
 
 //completely unuseable
 // // ufree(dev, bno)
