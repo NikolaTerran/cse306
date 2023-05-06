@@ -94,23 +94,62 @@ bzero(int dev, int bno)
 // }
 
 // Free a disk block.
-static void
-bfree(int dev, uint b)
-{
-  struct buf *bp;
-  int bi, m;
+// static void
+// bfree(int dev, uint b)
+// {
+//   struct buf *bp;
+//   int bi, m;
 
-  //ureadsb(dev, &usb);
-  readfilsys(dev, &fs);
-  bp = bread(dev, fs.s_free[0] + b);
-  bi = b % UBPB;
-  m = 1 << (bi % 8);
-  if((bp->data[bi/8] & m) == 0)
-    panic("freeing free block");
-  bp->data[bi/8] &= ~m;
-  // log_write(bp);
-  bwrite(bp);
-  brelse(bp);
+//   //ureadsb(dev, &usb);
+//   readfilsys(dev, &fs);
+//   bp = bread(dev, fs.s_free[0] + b);
+//   bi = b % UBPB;
+//   m = 1 << (bi % 8);
+//   if((bp->data[bi/8] & m) == 0)
+//     panic("freeing free block");
+//   bp->data[bi/8] &= ~m;
+//   // log_write(bp);
+//   bwrite(bp);
+//   brelse(bp);
+// }
+
+static ushort ubadblock(uint abn, ushort dev)
+{
+	struct filsys *fp;
+	char * bn;
+	fp = &fs;
+	bn = (char *)abn;
+	if (bn < (char *)(fp->s_isize+2) || bn >= (char *)(uint)(fp->s_fsize)) {
+		panic("bad block");
+	}
+	return(0);
+}
+
+
+static void bfree(ushort dev, uint bno)
+{
+	ushort *bp, *ip;
+	fs.s_fmod = 1;
+  // don't sleep
+	// while(fp->s_flock)
+	// 	sleep(&fp->s_flock, PINOD);
+	if (ubadblock(bno, dev))
+		return;
+	if(fs.s_nfree >= 100) {
+		fs.s_flock++;
+		bp = (ushort *)bread(dev, bno);
+		ip = (ushort *)(((struct v5buf *)bp)->b_addr);
+		*ip++ = fs.s_nfree;
+		
+    // bcopy(fs.s_free, ip, 100);
+
+		fs.s_nfree = 0;
+		bwrite((struct buf*)bp);
+		fs.s_flock = 0;
+		wakeup(&fs.s_flock);
+	}
+	fs.s_free[fs.s_nfree++] = bno;
+	fs.s_fmod = 1;
 }
 
 // Inodes.
@@ -216,20 +255,6 @@ uiinit(int dev)
 }
 
 static struct inode* iget(uint dev, uint inum);
-
-
-
-static ushort ubadblock(uint abn, ushort dev)
-{
-	struct filsys *fp;
-	char * bn;
-	fp = &fs;
-	bn = (char *)abn;
-	if (bn < (char *)(fp->s_isize+2) || bn >= (char *)(uint)(fp->s_fsize)) {
-		panic("bad block");
-	}
-	return(0);
-}
 
 static ushort balloc(ushort dev)
 {
@@ -568,7 +593,7 @@ uilock(struct inode *ip)
     // cprintf("inum %d\n",ip->inum);
     // cprintf("uiblock %d\n",UIBLOCK(ip->inum));
     // cprintf("v5dip %x\n",(struct v5dinode*)bp->data + ip->inum - 1);
-    cprintf("i_mode %d i_nlink %d i_uid %d i_gid %d i_size0 %d i_size1 %d addr %d\n",v5dip->i_mode,v5dip->i_nlink,v5dip->i_uid, v5dip->i_gid, v5dip->i_size0, v5dip->i_size1, *(v5dip->i_addr));
+    // cprintf("i_mode %d i_nlink %d i_uid %d i_gid %d i_size0 %d i_size1 %d addr %d\n",v5dip->i_mode,v5dip->i_nlink,v5dip->i_uid, v5dip->i_gid, v5dip->i_size0, v5dip->i_size1, *(v5dip->i_addr));
     // cprintf("inum uilock: %d\n", ip->inum);
 
     if((v5dip->i_mode) & IFDIR){
@@ -721,6 +746,7 @@ bmap(struct inode *ip, uint bn)
 static void
 itrunc(struct inode *ip)
 {
+
   int i, j;
   struct buf *bp;
   uint *a;

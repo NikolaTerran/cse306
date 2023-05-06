@@ -2,15 +2,11 @@
 
 Part 2:
 
-unix v5 is using disk 3.
+unix v5 is using disk 3 = DEV3.
 
-usuperblock is the xv6 superblock but I added a u in the front.
+FSSIZE in param.h increased to 4000 to support unix v5
+
 The actual unix v5 superblock is stored in struct filsys. (IT DOESN'T HAVE "E")
-
-THings that maybe need to be changed in the future:
-line 10 buf.h, BSIZE -> UBSIZE
-line 25 file.h NDIRECT -> 12
-
 
 Verify Inode
 
@@ -34,8 +30,6 @@ char    i_size0   ->  0
 char    *i_size1  ->  160
 int     i_addr[8] ->  3557
 
-FSSIZE in param.h increased to 4000 to support unix v5
-
 root -> 801100ac -> inum 1
 bin -> 801100cc -> inum 2
 
@@ -44,10 +38,24 @@ dev -> inum = 60
 expected dev addr = 8011080C
 actual: 80110f20 ??????
 
-etc -> inum = 
 derived calculation:
 
-bp = bread(ip->dev, UIBLOCK(ip->inum));
-v5dip = (struct v5dinode*)bp->data + (ip->inum - 1) % UIPB;
+```bp = bread(ip->dev, UIBLOCK(ip->inum));
+v5dip = (struct v5dinode*)bp->data + (ip->inum - 1) % UIPB;```
 
-I have no idea how correct this is, but it works for now.
+I have no idea why it works, but it works.
+
+
+CD/READING/WRITING:
+
+use % to access v5 root directory.
+
+example:
+cd %usr/sys/ken
+
+supported commands:
+cd/ls/cat/rm
+
+Other notes:
+
+The spaces and other characters in v5 files are displayed differently on the qemu terminal.

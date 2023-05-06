@@ -77,9 +77,9 @@ sys_read(void)
   if(argfd(0, 0, &f) < 0 || argint(2, &n) < 0 || argptr(1, &p, n) < 0)
     return -1;
 
-  if(myproc()->cwd->dev == ROOTDEV) {
-    return fileread(f, p, n);
-  }
+      if(myproc()->cwd->dev == ROOTDEV) {
+        return fileread(f, p, n);
+      }
 
   else {
     //using v5 device
@@ -622,7 +622,7 @@ sys_chdir(void)
     }else if((ip = namei(path))){
       //do nothing
     }else{
-      cprintf("uname not resolved\n");
+      // cprintf("uname not resolved\n");
       end_op();
       return -1;
     }
