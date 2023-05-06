@@ -76,7 +76,28 @@ sys_read(void)
 
   if(argfd(0, 0, &f) < 0 || argint(2, &n) < 0 || argptr(1, &p, n) < 0)
     return -1;
-  return fileread(f, p, n);
+
+  if(myproc()->cwd->dev == ROOTDEV) {
+    return fileread(f, p, n);
+  }
+
+  else {
+    //using v5 device
+    int r;
+
+    if(f->readable == 0)
+      return -1;
+    if(f->type == FD_PIPE)
+      return piperead(f->pipe, p, n);
+    if(f->type == FD_INODE){
+      uilock(f->ip);
+      if((r = ureadi(f->ip, p, f->off, n)) > 0)
+        f->off += r;
+      uiunlock(f->ip);
+      return r;
+    }
+    panic("fileread");
+  }
 }
 
 int
@@ -88,7 +109,50 @@ sys_write(void)
 
   if(argfd(0, 0, &f) < 0 || argint(2, &n) < 0 || argptr(1, &p, n) < 0)
     return -1;
-  return filewrite(f, p, n);
+
+  if(myproc()->cwd->dev == ROOTDEV) {
+    return filewrite(f, p, n);
+  }
+  else {
+    //Using v5 device
+
+    int r;
+
+    if(f->writable == 0)
+      return -1;
+    if(f->type == FD_PIPE)
+      return pipewrite(f->pipe, p, n);
+    if(f->type == FD_INODE){
+      // write a few blocks at a time to avoid exceeding
+      // the maximum log transaction size, including
+      // i-node, indirect block, allocation blocks,
+      // and 2 blocks of slop for non-aligned writes.
+      // this really belongs lower down, since writei()
+      // might be writing a device like the console.
+      int max = ((MAXOPBLOCKS-1-1-2) / 2) * 512;
+      int i = 0;
+      while(i < n){
+        int n1 = n - i;
+        if(n1 > max)
+          n1 = max;
+
+        begin_op();
+        uilock(f->ip);
+        if ((r = uwritei(f->ip, p + i, f->off, n1)) > 0)
+          f->off += r;
+        uiunlock(f->ip);
+        end_op();
+
+        if(r < 0)
+          break;
+        if(r != n1)
+          panic("short filewrite");
+        i += r;
+      }
+      return i == n ? n : -1;
+    }
+    panic("filewrite");
+  }
 }
 
 int
