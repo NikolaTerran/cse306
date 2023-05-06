@@ -258,6 +258,7 @@ static ushort balloc(ushort dev)
 	}
 	bp = (ushort * )bread(dev, bno);
 	// memset(((struct buf*)bp)->data, 0, UBSIZE);
+  brelse((struct buf *)bp);
   bzero(dev, bno);
 	fs.s_fmod = 1;
 	return(*bp);
@@ -426,8 +427,8 @@ uialloc(uint dev, short type)
         dip->i_mode = IALLOC + 0;
       }
       
-      cprintf("dip imode : %d\n",dip->i_mode);
-      cprintf("bp imode : %d\n",((struct v5dinode*)bp->data + (inum-1)%UIPB)->i_mode);
+      // cprintf("dip imode : %d\n",dip->i_mode);
+      // cprintf("bp imode : %d\n",((struct v5dinode*)bp->data + (inum-1)%UIPB)->i_mode);
 
       bwrite(bp);
       brelse(bp);
@@ -567,8 +568,8 @@ uilock(struct inode *ip)
     // cprintf("inum %d\n",ip->inum);
     // cprintf("uiblock %d\n",UIBLOCK(ip->inum));
     // cprintf("v5dip %x\n",(struct v5dinode*)bp->data + ip->inum - 1);
-    cprintf("i_mode %d i_nlink %d i_uid %d i_gid %d i_size0 %d i_size1 %d addr %d\n",v5dip->i_mode,v5dip->i_nlink,v5dip->i_uid, v5dip->i_gid, v5dip->i_size0, v5dip->i_size1, *(v5dip->i_addr));
-    cprintf("inum uilock: %d\n", ip->inum);
+    // cprintf("i_mode %d i_nlink %d i_uid %d i_gid %d i_size0 %d i_size1 %d addr %d\n",v5dip->i_mode,v5dip->i_nlink,v5dip->i_uid, v5dip->i_gid, v5dip->i_size0, v5dip->i_size1, *(v5dip->i_addr));
+    // cprintf("inum uilock: %d\n", ip->inum);
 
     if((v5dip->i_mode) & IFDIR){
       ip->type = 1;
@@ -668,7 +669,7 @@ bmap(struct inode *ip, uint bn)
   if(bn < UNDIRECT){
     if((addr = ip->addrs[bn]) == 0){
       ip->addrs[bn] = addr = balloc(ip->dev);
-      cprintf("new addr: %d\n",ip->addrs[bn]);
+      // cprintf("new addr: %d\n",ip->addrs[bn]);
     }
     return addr;
   }
@@ -679,7 +680,7 @@ bmap(struct inode *ip, uint bn)
     i=7;
   if ((addr = ip->addrs[i]) == 0){
     ip->addrs[i] = addr = balloc(ip->dev);
-    cprintf("addr: %d\n",ip->addrs[bn]);
+    // cprintf("addr: %d\n",ip->addrs[bn]);
   }
   bp = bread(ip->dev, addr);
   a = (ushort*)bp->data;
